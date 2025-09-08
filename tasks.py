@@ -1,4 +1,5 @@
 from crewai import Task
+import re
 
 class BrandingTasks:
     def summarize_resume_task(self, agent, context):
@@ -23,13 +24,18 @@ class BrandingTasks:
             The plan should be tailored for the {target_audience} on the {platform} platform.
             The user's desired positioning or tone is: '{positioning}'. Ensure the content ideas and voice reflect this.
 
+            The plan must be structured with clear daily themes. For example:
+            - Monday: The "Provocative Question" Post
+            - Tuesday: The "Data-Driven Insight" Post
+            - Thursday: The "Case Study Snippet" Post
+
             USER'S BACKGROUND AND GOALS:
             {user_context}
 
             USER'S WRITING SAMPLES (for voice analysis):
             {writing_samples}
             """,
-            expected_output=f"A markdown document outlining a {duration}-week content plan. Each week should have a clear theme and actionable content ideas tailored for {platform} and the user's desired positioning.",
+            expected_output=f"A markdown document outlining a {duration}-week content plan. Each week should have clear, actionable daily themes tailored for {platform} and the user's desired positioning.",
             agent=agent
         )
 
@@ -60,11 +66,79 @@ class BrandingTasks:
         )
 
     def ideation_task(self, agent, context):
+        # Find all daily themes in the content plan using regex
+        themes = re.findall(r'^\s*(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday):\s*(.*)', context, re.MULTILINE)
+        
         return Task(
-            description=f"Using the following approved content plan, generate exactly 3 distinct and specific LinkedIn post ideas for the FIRST week's theme. MANDATORY FORMAT: Separate each idea with '--- IDEA SEPARATOR ---'.\n\nCONTENT PLAN:\n{context}",
-            expected_output="Three post ideas, each containing a hook and outline, separated by '--- IDEA SEPARATOR ---'.",
+            description=f"""Based on the content strategy provided, generate 2-3 concise, one-liner post ideas for EACH of the following daily themes: {', '.join(themes)}.
+
+            The output must be structured exactly as follows, with each idea on a new line:
+            
+            THEME: [Name of the First Theme]
+            - [Idea 1]
+            - [Idea 2]
+            
+            THEME: [Name of the Second Theme]
+            - [Idea 1]
+            - [Idea 2]
+            - [Idea 3]
+
+            CONTENT STRATEGY:
+            {context}
+            """,
+            expected_output="A structured list of one-liner post ideas grouped by their daily theme.",
             agent=agent
         )
+
+    def refine_ideation_task(self, agent, context, critique):
+        return Task(
+            description=f"""A user has provided feedback on a set of LinkedIn post ideas. Your task is to generate a completely new set of ideas based on their critique.
+
+            The new ideas should be one-liners, grouped by the original themes from the content strategy.
+
+            USER'S CRITIQUE:
+            {critique}
+
+            REFERENCE CONTENT STRATEGY:
+            {context}
+
+            The output must be structured exactly as follows, with each idea on a new line:
+            
+            THEME: [Name of the First Theme]
+            - [Idea 1]
+            - [Idea 2]
+            
+            THEME: [Name of the Second Theme]
+            - [Idea 1]
+            - [Idea 2]
+            - [Idea 3]
+            """,
+            expected_output="A completely new, structured list of one-liner post ideas based on user feedback.",
+            agent=agent
+        )
+
+    def regenerate_ideas_task(self, agent, context, themes_to_regenerate):
+        return Task(
+            description=f"""Based on the provided content strategy, generate 2-3 new, concise, one-liner post ideas ONLY for the following themes: {', '.join(themes_to_regenerate)}.
+
+            The output must be structured exactly as follows, with each idea on a new line:
+            
+            THEME: [Name of the First Theme to Regenerate]
+            - [New Idea 1]
+            - [New Idea 2]
+            
+            THEME: [Name of the Second Theme to Regenerate]
+            - [New Idea 1]
+            - [New Idea 2]
+            - [New Idea 3]
+
+            FULL CONTENT STRATEGY (for context):
+            {context}
+            """,
+            expected_output="A structured list of new one-liner post ideas, only for the specified themes.",
+            agent=agent
+        )
+
 
     def title_task(self, agent, context):
         return Task(
@@ -76,7 +150,7 @@ class BrandingTasks:
     def writing_task(self, agent, context):
         return Task(
             description=f"""Write a full, ready-to-publish LinkedIn post based on the following content idea.
-            The post must be professional, engaging, and expand on the provided hook and outline.
+            The post must be professional, engaging, and expand on the provided one-liner idea.
 
             CONTENT IDEA:
             {context}""",
