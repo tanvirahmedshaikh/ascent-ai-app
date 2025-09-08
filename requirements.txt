@@ -1,0 +1,9 @@
+streamlit
+crewai
+crewai-tools
+python-dotenv
+groq
+langchain-groq
+langchain-google-genai
+pypdf
+streamlit-local-storage
