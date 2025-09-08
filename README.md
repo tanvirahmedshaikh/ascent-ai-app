@@ -2,23 +2,26 @@
 
 ### Intelligent Branding for Your Career Ascent
 
-Ascent AI is a sophisticated, SaaS-style Streamlit application that acts as your personal AI co-pilot for career branding. It leverages a multi-agent AI crew to transform your professional background and career goals into a clear, actionable content strategy, helping you build a powerful brand on platforms like LinkedIn and Twitter.
+Ascent AI is a sophisticated, SaaS-style Streamlit application that acts as your personal AI co-pilot for career branding. It turns your professional experience and career aspirations into content that gets noticed, helping you share posts in your authentic voice, join the right discussions, and grow your influence as a thought leader on platforms like LinkedIn.
+
+Upload your resume and writing samples so Ascent AI can learn your style — it doesn’t just write posts; it writes in your voice.
 
 
 
 ---
 ## ✨ Core Features
 
-* **Guided Onboarding:** A step-by-step input form guides you to provide your target role, audience, platform preferences, and professional context.
+* **Guided Onboarding:** Enter your target role, audience, platform preferences, and professional context to start building your brand.
+* **Interactive Refinement:** A human-in-the-loop (HITL) feedback system allows you to critique and refine the AI-generated strategy until it's perfect.
+* **Authentic Voice Posts:** Upload writing samples so AI can create content that reflects your unique tone and style.
 * **Multi-Agent AI Crew:** Powered by CrewAI, the app uses a team of specialized AI agents for a robust workflow:
-    * **Personal Branding Strategist (Gemini):** Analyzes your unique background to build a high-quality, tailored content plan.
+    * **Personal Branding Strategist (Gemini):** Creates a tailored, multi-week content strategy based on your background and career goals.
     * **Content Ideation Agent (Groq):** Brainstorms creative and engaging post ideas at high speed based on your approved strategy.
     * **Title Agent (Groq):** Automatically generates concise titles for your sessions.
 * **Heterogeneous LLM's:** Strategically uses different Large Language Models for different tasks—**Google's Gemini** for deep strategic analysis and **Groq's Llama** for high-speed creative generation.
-* **Interactive Refinement:** A human-in-the-loop (HITL) feedback system allows you to critique and refine the AI-generated strategy until it's perfect.
 * **Polished SaaS UI:** A clean, two-tab interface separates your workspace (`Brand Strategy`) from your content library (`Post Ideas`).
 * **Session Management:** A professional sidebar allows you to create new sessions, view, rename, and delete your recent session history.
-* **Export Functionality:** Download your generated strategies and post ideas as clean Markdown files.
+* **Export Functionality:** Download your generated strategies and post ideas as clean Markdown files for easy sharing.
 
 ---
 ## 💻 Built With
@@ -26,7 +29,7 @@ Ascent AI is a sophisticated, SaaS-style Streamlit application that acts as your
 * **Frontend:** [Streamlit](https://streamlit.io/)
 * **AI Framework:** [CrewAI](https://www.crewai.com/)
 * **LLMs:** [Google Gemini](https://ai.google.dev/) & [Groq Llama](https://groq.com/)
-* **Core Libraries:** pypdf, python-dotenv
+* **Core Libraries:** streamlit, crewai, langchain-groq, langchain-google-genai, pypdf, streamlit-local-storage
 
 ---
 ## 🚀 Getting Started
@@ -77,3 +80,10 @@ With your virtual environment active, run the following command in your terminal
 
 ```sh
 streamlit run app.py
+
+
+
+
+
+
+

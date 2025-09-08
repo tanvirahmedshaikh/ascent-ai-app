@@ -7,3 +7,4 @@ langchain-groq
 langchain-google-genai
 pypdf
 streamlit-local-storage
+
