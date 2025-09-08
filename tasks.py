@@ -3,10 +3,10 @@ from crewai import Task
 class BrandingTasks:
     def summarize_resume_task(self, agent, context):
         return Task(
-            description=f"""Summarize the provided resume or professional background. Identify the user's key skills, years of experience, primary industry, and infer their likely career goals. 
-            
+            description=f"""Summarize the provided resume or professional background. Identify the user's key skills, years of experience, primary industry, and infer their likely career goals.
+
             Frame the summary in a reflective, second-person tone. For example: 'I see you've worked in X for Y years... It looks like you're aiming for Z.'
-            
+
             IMPORTANT: End your summary with the following two questions exactly as written:
             'Did I get that right? Is there anything else you would like to add that the resume doesn't cover—things you're interested in, your hobbies, or specific aspirations?'
 
@@ -16,26 +16,31 @@ class BrandingTasks:
             agent=agent
         )
 
-    def strategy_task(self, agent, user_context, target_role, target_audience, platform, duration, positioning):
+    def strategy_task(self, agent, user_context, target_role, target_audience, platform, duration, positioning, writing_samples=""):
         return Task(
-            description=f"""Analyze the user's comprehensive background provided below.
+            description=f"""Analyze the user's comprehensive background and writing samples provided below.
             Based on this, create a detailed {duration}-week content plan to help them build their personal brand as a top-tier {target_role}.
             The plan should be tailored for the {target_audience} on the {platform} platform.
-            The user's desired positioning or tone is: '{positioning}'. Ensure the content ideas reflect this.
+            The user's desired positioning or tone is: '{positioning}'. Ensure the content ideas and voice reflect this.
 
             USER'S BACKGROUND AND GOALS:
-            {user_context}""",
+            {user_context}
+
+            USER'S WRITING SAMPLES (for voice analysis):
+            {writing_samples}
+            """,
             expected_output=f"A markdown document outlining a {duration}-week content plan. Each week should have a clear theme and actionable content ideas tailored for {platform} and the user's desired positioning.",
             agent=agent
         )
 
-    def refine_strategy_task(self, agent, context, critique, user_context, target_role, target_audience, platform, duration, positioning):
+    def refine_strategy_task(self, agent, context, critique, user_context, target_role, target_audience, platform, duration, positioning, writing_samples=""):
         return Task(
             description=f"""You are refining a personal branding content strategy based on user feedback. It is crucial that you create a new, updated plan that is significantly different from the previous version, based on the user's critique.
 
             USER'S FULL CONTEXT (for reference):
             {user_context}
-            
+            {writing_samples}
+
             THEIR GOALS:
             - Target Role: {target_role}
             - Target Audience: {target_audience}
@@ -60,15 +65,14 @@ class BrandingTasks:
             expected_output="Three post ideas, each containing a hook and outline, separated by '--- IDEA SEPARATOR ---'.",
             agent=agent
         )
-        
+
     def title_task(self, agent, context):
         return Task(
             description=f"Create a concise, 3-5 word title for this branding strategy session. The strategy is:\n\n{context}",
             expected_output="A single line of text containing only the 3-5 word title.",
             agent=agent
         )
-        
-    # --- ADDED MISSING TASKS FOR WRITING & QA ---
+
     def writing_task(self, agent, context):
         return Task(
             description=f"""Write a full, ready-to-publish LinkedIn post based on the following content idea.
@@ -79,7 +83,7 @@ class BrandingTasks:
             expected_output="The complete text for a single, polished LinkedIn post, formatted with markdown.",
             agent=agent
         )
-        
+
     def qa_critique_task(self, agent, context):
         return Task(
             description=f"""Review the following drafted LinkedIn post for quality, clarity, tone, and strategic alignment.
@@ -90,14 +94,14 @@ class BrandingTasks:
             expected_output="A bulleted list of constructive feedback OR a simple 'This post is approved and ready to publish.' statement.",
             agent=agent
         )
-    
+
     def refine_writing_task(self, agent, draft, user_critique):
         return Task(
             description=f"""Refine the following draft of a LinkedIn post based on the user's feedback. Create a new, improved version that directly addresses their points.
 
             USER FEEDBACK:
             {user_critique}
-            
+
             DRAFT TO REFINE:
             {draft}""",
             expected_output="A new, improved version of the LinkedIn post that incorporates the user's feedback.",
