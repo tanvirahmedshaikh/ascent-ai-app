@@ -7,6 +7,7 @@ from tasks import BrandingTasks
 from utils import process_uploaded_files
 import uuid
 import re
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -38,8 +39,8 @@ def new_session():
         "messages": [{"role": "assistant", "content": "Hi, I’m Ascent AI, your personal branding co-pilot. Let’s shape your LinkedIn presence together. To start, would you like to share your resume?"}],
         "conversation_state": "awaiting_resume_choice",
         "context": {}, 
-        "strategy": "", 
-        "post_ideas": {},  # Changed to a dictionary
+        "strategy_history": [],
+        "post_ideas": {},
         "draft": "", 
         "selected_idea": None
     }
@@ -111,12 +112,62 @@ session = get_current_session()
 if not session:
     st.info("Start a new session from the sidebar to begin your branding journey.")
 else:
-    st.title(f"Session: {session['title']}")
+    st.title("Create Your Personal Branding Strategy") 
 
     strategy_tab, posts_tab, writer_tab = st.tabs(["📝 Brand Strategy", "💡 Post Ideas", "✍️ Final Post"])
 
     with strategy_tab:
-        # ... (This section remains unchanged, so it's omitted for brevity) ...
+
+        all_states = [
+            "start", "awaiting_resume_choice", "awaiting_resume_upload", "awaiting_intro",
+            "awaiting_confirmation", "awaiting_target", "awaiting_audience",
+            "awaiting_positioning", "awaiting_samples", "awaiting_duration",
+            "generating_strategy", "awaiting_outline_approval", "awaiting_refinement", "strategy_approved", "drafting_post", "post_drafted"
+        ]
+
+        # Define the states that are part of the core strategy progress
+        strategy_states = [
+            "start", "awaiting_resume_choice", "awaiting_resume_upload", "awaiting_intro",
+            "awaiting_confirmation", "awaiting_target", "awaiting_audience",
+            "awaiting_positioning", "awaiting_samples", "awaiting_duration",
+            "generating_strategy", "awaiting_outline_approval", "awaiting_refinement", "strategy_approved"
+        ]
+        
+        progress_steps = [
+            "Resume & Background", "Goals & Positioning",
+            "Strategy Generation", "Strategy Approval"
+        ]
+
+        current_state = session.get("conversation_state", "start")
+        
+        # Calculate progress based only on strategy-related states
+        if current_state in strategy_states:
+            current_state_index = strategy_states.index(current_state)
+            progress_value = current_state_index / (len(strategy_states) - 1)
+        else:
+            # Once the strategy is approved, the progress bar is considered full
+            progress_value = 1.0
+
+        st.progress(progress_value)
+
+        cols = st.columns(len(progress_steps))
+        for i, step_title in enumerate(progress_steps):
+            with cols[i]:
+                is_active = False
+                if step_title == "Resume & Background" and current_state in ["awaiting_resume_choice", "awaiting_resume_upload", "awaiting_intro", "awaiting_confirmation"]:
+                    is_active = True
+                elif step_title == "Goals & Positioning" and current_state in ["awaiting_target", "awaiting_audience", "awaiting_positioning", "awaiting_samples", "awaiting_duration"]:
+                    is_active = True
+                elif step_title == "Strategy Generation" and current_state in ["generating_strategy", "awaiting_outline_approval"]:
+                    is_active = True
+                elif step_title == "Strategy Approval" and current_state in ["awaiting_refinement", "strategy_approved"]:
+                    is_active = True
+                
+                if is_active:
+                    st.markdown(f"**{step_title}**")
+                else:
+                    st.markdown(f"_{step_title}_")
+
         st.header("Strategy Development")
 
         for message in session.get("messages", []):
@@ -171,8 +222,8 @@ else:
         elif state in ["awaiting_target", "awaiting_audience", "awaiting_positioning", "awaiting_samples", "awaiting_duration"]:
             prompt_map = {
                 "awaiting_target": "What is your target role? (e.g., AI Product Manager)",
-                "awaiting_audience": "Who is your target audience? (e.g., Recruiters, industry peers)",
-                "awaiting_positioning": "How do you want to come across? (e.g., authoritative, approachable)",
+                "awaiting_audience": "Who is your target audience? (e.g., Hiring managers at top tech firms, fellow developers in the open-source community, venture capitalists interested in AI)",
+                "awaiting_positioning": "How do you want to come across? (e.g., authoritative, data-driven, innovative, visionary, approachable and community-focused)",
                 "awaiting_samples": "To learn your unique voice, please upload 1-3 writing samples (blog posts, articles, etc.). You can also skip this step.",
                 "awaiting_duration": "How many weeks for the content plan? (e.g., '4 weeks')"
             }
@@ -195,7 +246,7 @@ else:
                 uploaded_files = st.file_uploader("Upload your writing samples (PDF, TXT, MD)", type=['pdf', 'txt', 'md'], accept_multiple_files=True)
                 
                 if st.button("Skip for now"):
-                    session["context"]["writing_samples"] = "" # No samples provided
+                    session["context"]["writing_samples"] = ""
                     session["messages"].append({"role": "user", "content": "Skipped uploading writing samples."})
                     session["conversation_state"] = next_state_map[state]
                     session["messages"].append({"role": "assistant", "content": prompt_map[session["conversation_state"]]})
@@ -222,26 +273,67 @@ else:
 
         elif state == "generating_strategy":
             with st.chat_message("assistant"):
-                with st.spinner("Perfect, I have everything I need. The Strategist is now crafting your brand strategy..."):
+                with st.spinner("Perfect, I have everything I need. The Strategist is now crafting a high-level outline..."):
                     if "platform" not in session["context"]:
                         session["context"]["platform"] = "LinkedIn"
-
+                    
+                    outline_context = {k: v for k, v in session["context"].items() if k != 'writing_samples'}
+                    
                     strategist_agent = agents.personal_branding_strategist()
-                    strategy_task = tasks.strategy_task(strategist_agent, **session["context"])
-                    crew = Crew(agents=[strategist_agent], tasks=[strategy_task], process=Process.sequential)
-                    strategy = crew.kickoff().raw
-                    session["strategy"] = strategy
-
-                    title_agent = agents.title_agent()
-                    title_task = tasks.title_task(title_agent, strategy)
-                    title_crew = Crew(agents=[title_agent], tasks=[title_task], process=Process.sequential)
-                    session["title"] = title_crew.kickoff().raw
-                    st.toast(f"Session renamed to: {session['title']}")
-
-                    response = f"Here is the initial brand strategy I've developed for you:\n\n---\n\n{strategy}\n\n---\n\nDoes this feel like the right direction? Please provide feedback for refinement, or type 'looks good' to approve."
+                    intermediate_outline_task = tasks.intermediate_outline_task(strategist_agent, **outline_context)
+                    crew = Crew(agents=[strategist_agent], tasks=[intermediate_outline_task], process=Process.sequential)
+                    intermediate_outline = crew.kickoff().raw
+                    
+                    response = f"Here is a high-level outline for your content strategy:\n\n---\n\n{intermediate_outline}\n\n---\n\nDoes this feel like the right direction? Please provide feedback for refinement, or type 'looks good' to proceed with the full strategy."
                     st.markdown(response)
                     session["messages"].append({"role": "assistant", "content": response})
-                    session["conversation_state"] = "awaiting_refinement"
+                    session["conversation_state"] = "awaiting_outline_approval"
+                    st.rerun()
+
+        elif state == "awaiting_outline_approval":
+            if prompt := st.chat_input("Provide feedback to refine the outline, or type 'looks good' to approve..."):
+                session["messages"].append({"role": "user", "content": prompt})
+                if any(word in prompt.lower() for word in ["good", "approve", "perfect", "continue"]):
+                    with st.spinner("Great! Now creating the detailed strategy based on the outline..."):
+                        strategist_agent = agents.personal_branding_strategist()
+                        strategy_task = tasks.strategy_task(strategist_agent, **session["context"])
+                        crew = Crew(agents=[strategist_agent], tasks=[strategy_task], process=Process.sequential)
+                        strategy = crew.kickoff().raw
+                        
+                        # Save the first detailed strategy to history
+                        session["strategy_history"].append({
+                            "version": len(session["strategy_history"]) + 1,
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "content": strategy
+                        })
+
+                        title_agent = agents.title_agent()
+                        title_task = tasks.title_task(title_agent, strategy)
+                        title_crew = Crew(agents=[title_agent], tasks=[title_task], process=Process.sequential)
+                        session["title"] = title_crew.kickoff().raw
+                        st.toast(f"Session renamed to: {session['title']}")
+                        
+                        response = f"Here is the detailed brand strategy:\n\n---\n\n{strategy}\n\n---\n\nDoes this feel like the right direction? Please provide feedback for refinement, or type 'looks good' to approve."
+                        st.markdown(response)
+                        session["messages"].append({"role": "assistant", "content": response})
+                        session["conversation_state"] = "awaiting_refinement"
+                        st.rerun()
+                else:
+                    with st.spinner("Refining the outline based on your feedback..."):
+                        strategist_agent = agents.personal_branding_strategist()
+                        refine_task = tasks.refine_strategy_task(strategist_agent, session["strategy_history"][-1]["content"] if session["strategy_history"] else "", prompt, **session["context"])
+                        crew = Crew(agents=[strategist_agent], tasks=[refine_task], process=Process.sequential)
+                        new_outline = crew.kickoff().raw
+                        
+                        # Save refined outline to history
+                        session["strategy_history"].append({
+                            "version": len(session["strategy_history"]) + 1,
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "content": new_outline
+                        })
+                        
+                        response = f"I've updated the outline based on your feedback:\n\n---\n\n{new_outline}\n\n---\n\nHow does this new version look?"
+                    session["messages"].append({"role": "assistant", "content": response})
                     st.rerun()
 
         elif state == "awaiting_refinement":
@@ -250,7 +342,7 @@ else:
                 if any(word in prompt.lower() for word in ["good", "approve", "perfect", "continue"]):
                     with st.spinner("Finalizing strategy and brainstorming post ideas..."):
                         ideator_agent = agents.content_ideation_agent()
-                        ideation_task = tasks.ideation_task(ideator_agent, session["strategy"])
+                        ideation_task = tasks.ideation_task(ideator_agent, session["strategy_history"][-1]["content"])
                         crew = Crew(agents=[ideator_agent], tasks=[ideation_task], process=Process.sequential)
                         ideas_text = crew.kickoff().raw
                         session["post_ideas"] = parse_ideas(ideas_text)
@@ -259,11 +351,19 @@ else:
                         session["conversation_state"] = "strategy_approved"
                 else:
                     with st.spinner("Refining the strategy based on your feedback..."):
+                        current_strategy = session["strategy_history"][-1]["content"]
                         strategist_agent = agents.personal_branding_strategist()
-                        refine_task = tasks.refine_strategy_task(strategist_agent, session["strategy"], prompt, **session["context"])
+                        refine_task = tasks.refine_strategy_task(strategist_agent, current_strategy, prompt, **session["context"])
                         crew = Crew(agents=[strategist_agent], tasks=[refine_task], process=Process.sequential)
                         new_strategy = crew.kickoff().raw
-                        session["strategy"] = new_strategy
+                        
+                        # Append new strategy to history
+                        session["strategy_history"].append({
+                            "version": len(session["strategy_history"]) + 1,
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "content": new_strategy
+                        })
+
                         response = f"I've updated the strategy based on your feedback:\n\n---\n\n{new_strategy}\n\n---\n\nHow does this new version look?"
 
                 session["messages"].append({"role": "assistant", "content": response})
@@ -272,7 +372,20 @@ else:
         elif state == "strategy_approved":
             st.success("Strategy approved! You can now generate post ideas or proceed to the other tabs.")
 
-
+        # --- Display Strategy History ---
+        if session["strategy_history"]:
+            st.markdown("---")
+            st.subheader("Strategy History")
+            
+            history_options = [
+                f"Version {item['version']} ({item['timestamp']})"
+                for item in session["strategy_history"]
+            ]
+            selected_index = st.selectbox("Select a version to view:", range(len(history_options)), format_func=lambda i: history_options[i])
+            
+            selected_strategy = session["strategy_history"][selected_index]["content"]
+            st.text_area("Selected Strategy", value=selected_strategy, height=500, key=f"strategy_display_{selected_index}")
+            
     with posts_tab:
         st.header("Your Content Ideas")
         if session.get("post_ideas"):
@@ -306,7 +419,7 @@ else:
                 if themes_to_regenerate:
                     with st.spinner("Generating new ideas for unselected items..."):
                         ideator_agent = agents.content_ideation_agent()
-                        regenerate_task = tasks.regenerate_ideas_task(ideator_agent, session["strategy"], themes_to_regenerate)
+                        regenerate_task = tasks.regenerate_ideas_task(ideator_agent, session["strategy_history"][-1]["content"], themes_to_regenerate)
                         crew = Crew(agents=[ideator_agent], tasks=[regenerate_task], process=Process.sequential)
                         new_ideas_text = crew.kickoff().raw
                         newly_generated_ideas = parse_ideas(new_ideas_text)
@@ -328,7 +441,7 @@ else:
                 if refinement_feedback:
                     with st.spinner("Refining all ideas based on your feedback..."):
                         ideator_agent = agents.content_ideation_agent()
-                        refine_task = tasks.refine_ideation_task(ideator_agent, session["strategy"], refinement_feedback)
+                        refine_task = tasks.refine_ideation_task(ideator_agent, session["strategy_history"][-1]["content"], refinement_feedback)
                         crew = Crew(agents=[ideator_agent], tasks=[refine_task], process=Process.sequential)
                         new_ideas_text = crew.kickoff().raw
                         session["post_ideas"] = parse_ideas(new_ideas_text)

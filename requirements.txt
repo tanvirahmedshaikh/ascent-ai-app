@@ -7,4 +7,5 @@ langchain-groq
 langchain-google-genai
 pypdf
 streamlit-local-storage
+streamlit-scrollable-textbox
 

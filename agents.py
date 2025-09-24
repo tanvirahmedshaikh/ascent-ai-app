@@ -28,7 +28,8 @@ class BrandingAgents:
         )
         
     def personal_branding_strategist(self):
-        return Agent(
+        try:
+            return Agent(
             role='Personal Branding Strategist',
             goal="Create a tailored multi-week LinkedIn content plan to help the user build their professional brand and position themselves in relevant career circles.",
             backstory=(
@@ -40,6 +41,19 @@ class BrandingAgents:
             verbose=False,
             allow_delegation=False
         )
+        except Exception:
+            return Agent(
+                    role="Personal Branding Strategist (Grok used instead of Gemini due to error)",
+                    goal="Create a tailored multi-week LinkedIn content plan to help the user build their professional brand and position themselves in relevant career circles.",
+                    backstory=(
+                        "You are an expert in career branding and LinkedIn content strategy. "
+                        "You analyze the user's background, aspirations, and uploaded documents to generate an actionable content plan "
+                        "that helps them grow influence, participate in LinkedIn discussions, and become a recognized thought leader."
+                    ),
+                    llm=groq_llm,
+                    verbose=False,
+                    allow_delegation=False
+                )
 
     def content_ideation_agent(self):
         return Agent(

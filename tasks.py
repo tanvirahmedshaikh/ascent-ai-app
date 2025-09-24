@@ -9,7 +9,7 @@ class BrandingTasks:
             Frame the summary in a reflective, second-person tone. For example: 'I see you've worked in X for Y years... It looks like you're aiming for Z.'
 
             IMPORTANT: End your summary with the following two questions exactly as written:
-            'Did I get that right? Is there anything else you would like to add that the resume doesn't cover—things you're interested in, your hobbies, or specific aspirations?'
+            'Did I get that right? Is there anything else you would like to add that the resume doesn't cover such as things you're interested in, your hobbies, or specific aspirations?'
 
             USER'S BACKGROUND:
             {context}""",
@@ -17,10 +17,41 @@ class BrandingTasks:
             agent=agent
         )
 
+    # NEW: Task to create a more detailed, intermediate content outline
+    def intermediate_outline_task(self, agent, user_context, target_role, target_audience, platform, duration, positioning):
+        return Task(
+            description=f"""Analyze the user's comprehensive background and goals.
+            Create an extremely concise, intermediate-level outline for a {duration}-week content plan to help them build their personal brand as a top-tier {target_role}.
+            The outline should be tailored for the {target_audience} on the {platform} platform and reflect the user's desired positioning: '{positioning}'.
+            The outline MUST be **exactly** {duration} week(s) long.
+            The output should provide a weekly theme and 2-3 supporting bullet points that elaborate on the week's focus.
+
+            Each week's entry must contain:
+            1. A bolded title for the week's theme (e.g., **Week 1: Foundations & Expertise**).
+            2. Exactly 2-3 brief bullet points detailing the key content areas for the week.
+
+            DO NOT add any conversational text, introductory sentences, or additional prose. Only provide the outline.
+
+            Example Format:
+            **Week 1: Foundations & Expertise**
+            - Focus on establishing foundational credibility in your field.
+            - Showcase quantifiable achievements and career trajectory.
+            - Share your unique perspective on industry challenges.
+
+            USER'S BACKGROUND AND GOALS:
+            {user_context}
+            """,
+            expected_output=f"A structured, week-by-week outline with a bolded theme and 2-3 bullet points for each of the {duration} weeks.",
+            agent=agent
+        )
+
     def strategy_task(self, agent, user_context, target_role, target_audience, platform, duration, positioning, writing_samples=""):
         return Task(
             description=f"""Analyze the user's comprehensive background and writing samples provided below.
             Based on this, create a detailed {duration}-week content plan to help them build their personal brand as a top-tier {target_role}.
+
+            The plan MUST be **exactly** {duration} week(s) long.
+            
             The plan should be tailored for the {target_audience} on the {platform} platform.
             The user's desired positioning or tone is: '{positioning}'. Ensure the content ideas and voice reflect this.
 
@@ -35,8 +66,10 @@ class BrandingTasks:
             USER'S WRITING SAMPLES (for voice analysis):
             {writing_samples}
             """,
-            expected_output=f"A markdown document outlining a {duration}-week content plan. Each week should have clear, actionable daily themes tailored for {platform} and the user's desired positioning.",
-            agent=agent
+            expected_output=f"A markdown document outlining an **EXACTLY** {duration}-week content plan. Each week should have clear, actionable daily themes tailored for {platform} and the user's desired positioning.",
+            agent=agent,
+            max_retries=3,  # Add this line to retry up to 3 times
+            retry_delay=5   # Add a delay of 5 seconds between retries
         )
 
     def refine_strategy_task(self, agent, context, critique, user_context, target_role, target_audience, platform, duration, positioning, writing_samples=""):
@@ -67,7 +100,7 @@ class BrandingTasks:
 
     def ideation_task(self, agent, context):
         # Find all daily themes in the content plan using regex
-        themes = re.findall(r'^\s*(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday):\s*(.*)', context, re.MULTILINE)
+        themes = re.findall(r'^-\s*(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday):\s*(.*)', context, re.MULTILINE)
         
         return Task(
             description=f"""Based on the content strategy provided, generate 2-3 concise, one-liner post ideas for EACH of the following daily themes: {', '.join(themes)}.
