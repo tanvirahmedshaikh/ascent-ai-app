@@ -83,6 +83,77 @@ streamlit run app.py
 
 
 
+## Post Ideas Tab Logic and UI
+Your Content Ideas
+
+These ideas are based on your personal branding strategy. Use the options below to refine and select your favorites.
+
+1. Future of PM in the Age of Generative AI
+
+
+
+[ ] "As Generative AI reshapes our world, how will PMs adapt to leverage its power for transformative innovation?"
+
+[➕3 More like this] [✍️ Write]
+
+[ ] "Imagine PMs as AI strategists - what would be the most critical skillsets for success?"
+
+[➕3 More like this] [✍️ Write]
+
+[ ] "Will AI-generated insights revolutionize product decision-making - share your thoughts!"
+
+[➕3 More like this] [✍️ Write]
+
+Refine Ideas for This Theme
+
+
+
+
+
+[Text input area: Provide feedback to refine existing ideas or generate new ones for the selected topics. Feedback will modify the current ideas; generating new ideas will replace all unselected ones with a fresh batch.]
+
+[Refine Selected Topics] [🔄 Generate New Ideas for Selected Topics]
+
+2. Quantifying Innovation's Impact at Genentech
+
+
+
+[ ] "From zero to hero: how a simple data product transformed productivity at Genentech."
+
+[➕3 More like this] [✍️ Write]
+
+[ ] "26 FTEs freed to focus on strategy - what innovative solutions have you unlocked?"
+
+[➕3 More like this] [✍️ Write]
+
+[ ] "Unlocking the numbers: how data-driven innovation improved process efficiency."
+
+[➕3 More like this] [✍️ Write]
+
+Refine Ideas for This Theme
+
+
+
+
+
+[Text input area: Provide feedback to refine existing ideas or generate new ones for the selected topics. Feedback will modify the current ideas; generating new ideas will replace all unselected ones with a fresh batch.]
+
+[Refine Selected Topics] [🔄 Generate New Ideas for Selected Topics]
+
+Overall Strategy Refinement
+
+Actions that apply across all themes.
+
+
+
+[Text input area: Provide feedback to refine selected topics or generate new ones for the unselected topics. Feedback will modify the selected ideas; generating new ideas will replace all unselected ones with a fresh batch.]
+
+[Refine All Ideas with Feedback] [🔄 Generate New Ideas for All Unselected Topics]
+
+## UI
+
+<img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/2ec3cca2-261a-430f-8855-6b457dcdb4bf" />
+
 
 
 
