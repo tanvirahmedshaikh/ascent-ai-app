@@ -47,20 +47,82 @@ def new_session():
     st.session_state.editing_session_id = None
     st.session_state.active_tab = "📝 Brand Strategy"
 
+def create_mock_session():
+    """Creates a pre-populated session for testing purposes."""
+    session_id = str(uuid.uuid4())
+    st.session_state.current_session_id = session_id
+    st.session_state.sessions[session_id] = {
+        "title": "Mock Testing Session",
+        "messages": [{"role": "assistant", "content": "Mock session loaded. Ready for testing!"}],
+        "conversation_state": "strategy_approved",
+        "context": {
+            "user_context": "Sample user background.",
+            "target_role": "AI Product Manager",
+            "target_audience": "Tech executives and VCs",
+            "positioning": "Innovative and data-driven",
+            "duration": "4",
+            "platform": "LinkedIn"
+        },
+        "strategy_history": [{
+            "version": 1,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "content": "A simple 4-week strategy for an AI Product Manager."
+        }],
+        "post_ideas": {
+            "Future of PM in the Age of Generative AI": [
+                {"text": "As Generative AI reshapes our world, how will PMs adapt to leverage its power for transformative innovation?", "checked": False},
+                {"text": "Imagine PMs as AI strategists - what would be the most critical skillsets for success?", "checked": False},
+                {"text": "Will AI-generated insights revolutionize product decision-making - share your thoughts!", "checked": False}
+            ],
+            "Quantifying Innovation's Impact at Genentech": [
+                {"text": "From zero to hero: how a simple data product transformed productivity at Genentech.", "checked": False},
+                {"text": "26 FTEs freed to focus on strategy - what innovative solutions have you unlocked?", "checked": False},
+                {"text": "Unlocking the numbers: how data-driven innovation improved process efficiency.", "checked": False}
+            ]
+        },
+        "draft": "",
+        "selected_idea": None
+    }
+    st.session_state.editing_session_id = None
+    st.session_state.active_tab = "💡 Post Ideas"
+    st.toast("Mock session created successfully! You can now test the Post Ideas tab.")
+    st.rerun()
+
 def parse_ideas(text):
-    """Parses the AI's text output into a dictionary of themes and ideas."""
+    """Parses the AI's text output into a dictionary of themes and ideas.
+       This version is more robust to handle themes at the start or end of the section."""
     ideas_dict = {}
     current_theme = None
-    for line in text.strip().split('\n'):
-        line = line.strip()
-        if line.upper().startswith("THEME:"):
-            current_theme = line.split(':', 1)[1].strip()
-            if current_theme not in ideas_dict:
-                ideas_dict[current_theme] = []
-        elif line.startswith('- ') and current_theme:
-            idea = line[2:].strip()
-            ideas_dict[current_theme].append({"text": idea, "checked": True})
+    
+    # Split the text by "THEME:" to find all theme sections
+    sections = re.split(r'THEME:\s*', text, flags=re.IGNORECASE)[1:]
+    
+    for section in sections:
+        lines = section.strip().split('\n')
+        
+        if len(lines) > 0 and not lines[0].strip().startswith('-'):
+            current_theme = lines[0].strip()
+            lines = lines[1:]
+        else:
+            last_line = lines[-1].strip() if lines else ""
+            if "THEME:" in last_line:
+                current_theme = last_line.replace("THEME:", "").strip()
+                lines.pop()
+            else:
+                current_theme = "Uncategorized Ideas"
+        
+        if current_theme not in ideas_dict:
+            ideas_dict[current_theme] = []
+
+        for line in lines:
+            line = line.strip()
+            if line.startswith('- '):
+                idea = line[2:].strip()
+                ideas_dict[current_theme].append({"text": idea, "checked": False})
+            elif len(ideas_dict[current_theme]) > 0:
+                ideas_dict[current_theme][-1]["text"] += " " + line
     return ideas_dict
+
 
 # --- AGENT & TASK DEFINITIONS ---
 agents = BrandingAgents()
@@ -74,6 +136,9 @@ with st.sidebar:
     if st.button("➕ New Session", use_container_width=True, type="primary"):
         new_session()
         st.rerun()
+    
+    if st.button("🧪 Load Test Session", use_container_width=True):
+        create_mock_session()
 
     st.divider()
     if st.session_state.sessions:

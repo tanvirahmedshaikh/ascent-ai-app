@@ -68,8 +68,8 @@ class BrandingTasks:
             """,
             expected_output=f"A markdown document outlining an **EXACTLY** {duration}-week content plan. Each week should have clear, actionable daily themes tailored for {platform} and the user's desired positioning.",
             agent=agent,
-            max_retries=3,  # Add this line to retry up to 3 times
-            retry_delay=5   # Add a delay of 5 seconds between retries
+            max_retries=3,
+            retry_delay=5
         )
 
     def refine_strategy_task(self, agent, context, critique, user_context, target_role, target_audience, platform, duration, positioning, writing_samples=""):
@@ -97,9 +97,78 @@ class BrandingTasks:
             expected_output="A new, improved content plan that directly addresses the user's critique and is substantially different from the previous version.",
             agent=agent
         )
+    
+    # Task to refine a list of selected ideas based on feedback
+    def refine_selected_ideas_task(self, agent, context, critique, ideas_to_refine):
+        return Task(
+            description=f"""You have been given a list of post ideas that a user wants to refine. Your task is to apply the user's critique to these specific ideas and regenerate them.
+
+            USER'S CRITIQUE:
+            {critique}
+
+            IDEAS TO REFINE:
+            {ideas_to_refine}
+
+            REFERENCE CONTENT STRATEGY:
+            {context}
+
+            The output must be structured exactly as follows, with each idea on a new line:
+            
+            THEME: [Name of the First Theme]
+            - [Refined Idea 1]
+            - [Refined Idea 2]
+            
+            THEME: [Name of the Second Theme]
+            - [Refined Idea 1]
+            - [Refined Idea 2]
+            - [Refined Idea 3]
+            """,
+            expected_output="A structured list of refined one-liner post ideas grouped by their original theme.",
+            agent=agent
+        )
+
+    # Task to generate new ideas for a specific theme
+    def generate_new_ideas_for_theme_task(self, agent, context, theme):
+        return Task(
+            description=f"""Based on the provided content strategy, generate 3 new, concise, one-liner post ideas ONLY for the following theme: {theme}.
+
+            The output must be structured exactly as follows, with each idea on a new line:
+            
+            THEME: {theme}
+            - [New Idea 1]
+            - [New Idea 2]
+            - [New Idea 3]
+
+            FULL CONTENT STRATEGY (for context):
+            {context}
+            """,
+            expected_output="A structured list of 3 new one-liner post ideas for the specified theme.",
+            agent=agent
+        )
+    
+    # Task for generating similar ideas to a selected one
+    def generate_similar_ideas_task(self, agent, context, theme, selected_idea):
+        return Task(
+            description=f"""Based on the full content strategy and the user's selected post idea, generate 3 new, concise, one-liner post ideas that are thematically or stylistically similar to the selected idea.
+
+            Your output must be structured exactly as follows, with each idea on a new line:
+
+            THEME: {theme}
+            - [New Idea 1]
+            - [New Idea 2]
+            - [New Idea 3]
+
+            SELECTED IDEA:
+            {selected_idea}
+
+            FULL CONTENT STRATEGY (for context):
+            {context}
+            """,
+            expected_output="A structured list of 3 new, one-liner post ideas that are thematically or stylistically similar to the specified selected idea.",
+            agent=agent
+        )
 
     def ideation_task(self, agent, context):
-        # Find all daily themes in the content plan using regex
         themes = re.findall(r'^-\s*(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday):\s*(.*)', context, re.MULTILINE)
         
         return Task(
@@ -122,8 +191,8 @@ class BrandingTasks:
             expected_output="A structured list of one-liner post ideas grouped by their daily theme.",
             agent=agent
         )
-
-    def refine_ideation_task(self, agent, context, critique):
+    
+    def refine_all_ideas_with_feedback_task(self, agent, context, critique):
         return Task(
             description=f"""A user has provided feedback on a set of LinkedIn post ideas. Your task is to generate a completely new set of ideas based on their critique.
 
@@ -150,9 +219,9 @@ class BrandingTasks:
             agent=agent
         )
 
-    def regenerate_ideas_task(self, agent, context, themes_to_regenerate):
+    def regenerate_ideas_for_all_unselected_topics_task(self, agent, context, ideas_to_regenerate):
         return Task(
-            description=f"""Based on the provided content strategy, generate 2-3 new, concise, one-liner post ideas ONLY for the following themes: {', '.join(themes_to_regenerate)}.
+            description=f"""Based on the provided content strategy, generate new, concise, one-liner post ideas ONLY for the ideas that the user did NOT select.
 
             The output must be structured exactly as follows, with each idea on a new line:
             
@@ -165,13 +234,15 @@ class BrandingTasks:
             - [New Idea 2]
             - [New Idea 3]
 
+            UNSELECTED IDEAS TO REGENERATE:
+            {ideas_to_regenerate}
+
             FULL CONTENT STRATEGY (for context):
             {context}
             """,
             expected_output="A structured list of new one-liner post ideas, only for the specified themes.",
             agent=agent
         )
-
 
     def title_task(self, agent, context):
         return Task(
