@@ -99,38 +99,38 @@ class BrandingTasks:
         )
     
     # Task to refine a list of selected ideas based on feedback
-    def refine_selected_ideas_task(self, agent, context, critique, ideas_to_refine):
+    def refine_ideas_with_feedback_task(self, agent, context, critique, ideas_to_refine):
+            return Task(
+                description=f"""You have been given a list of post ideas that a user wants to refine. Your task is to apply the user's critique to ONLY THESE SPECIFIC ideas and regenerate them. The new ideas must directly reflect the critique provided.
+
+                USER'S CRITIQUE:
+                {critique}
+
+                IDEAS TO REFINE:
+                {ideas_to_refine}
+
+                REFERENCE CONTENT STRATEGY:
+                {context}
+
+                The output must be structured exactly as follows, with each idea on a new line:
+                
+                THEME: [Name of the First Theme]
+                - [Refined Idea 1]
+                - [Refined Idea 2]
+                
+                THEME: [Name of the Second Theme]
+                - [Refined Idea 1]
+                - [Refined Idea 2]
+                - [Refined Idea 3]
+                """,
+                expected_output="A structured list of refined one-liner post ideas grouped by their original theme.",
+                agent=agent
+            )
+
+        # Task to generate new ideas for a specific theme
+    def generate_new_ideas_for_theme_task(self, agent, context, theme, num_ideas):
         return Task(
-            description=f"""You have been given a list of post ideas that a user wants to refine. Your task is to apply the user's critique to these specific ideas and regenerate them.
-
-            USER'S CRITIQUE:
-            {critique}
-
-            IDEAS TO REFINE:
-            {ideas_to_refine}
-
-            REFERENCE CONTENT STRATEGY:
-            {context}
-
-            The output must be structured exactly as follows, with each idea on a new line:
-            
-            THEME: [Name of the First Theme]
-            - [Refined Idea 1]
-            - [Refined Idea 2]
-            
-            THEME: [Name of the Second Theme]
-            - [Refined Idea 1]
-            - [Refined Idea 2]
-            - [Refined Idea 3]
-            """,
-            expected_output="A structured list of refined one-liner post ideas grouped by their original theme.",
-            agent=agent
-        )
-
-    # Task to generate new ideas for a specific theme
-    def generate_new_ideas_for_theme_task(self, agent, context, theme):
-        return Task(
-            description=f"""Based on the provided content strategy, generate 3 new, concise, one-liner post ideas ONLY for the following theme: {theme}.
+            description=f"""Based on the provided content strategy, generate {num_ideas} new, concise, one-liner post ideas ONLY for the following theme: {theme}.
 
             The output must be structured exactly as follows, with each idea on a new line:
             
@@ -138,11 +138,12 @@ class BrandingTasks:
             - [New Idea 1]
             - [New Idea 2]
             - [New Idea 3]
+            ... and so on for {num_ideas} ideas.
 
             FULL CONTENT STRATEGY (for context):
             {context}
             """,
-            expected_output="A structured list of 3 new one-liner post ideas for the specified theme.",
+            expected_output=f"A structured list of {num_ideas} new one-liner post ideas for the specified theme.",
             agent=agent
         )
     
@@ -191,7 +192,36 @@ class BrandingTasks:
             expected_output="A structured list of one-liner post ideas grouped by their daily theme.",
             agent=agent
         )
-    
+
+    # NEW TASK: Refine a set of selected ideas across multiple themes
+    def refine_selected_ideas_across_themes_task(self, agent, context, critique, ideas_to_refine):
+        return Task(
+            description=f"""A user has provided feedback on a set of LinkedIn post ideas. Your task is to apply the user's critique to ONLY THE SPECIFIC SELECTED IDEAS provided below and regenerate them. These ideas can come from multiple themes.
+
+            USER'S CRITIQUE:
+            {critique}
+
+            IDEAS TO REFINE:
+            {ideas_to_refine}
+
+            REFERENCE CONTENT STRATEGY:
+            {context}
+
+            The output must be structured exactly as follows, with each idea on a new line. Only include the themes that contain refined ideas.
+            
+            THEME: [Name of the First Theme]
+            - [Refined Idea 1]
+            - [Refined Idea 2]
+            
+            THEME: [Name of the Second Theme]
+            - [Refined Idea 1]
+            - [Refined Idea 2]
+            - [Refined Idea 3]
+            """,
+            expected_output="A structured list of refined one-liner post ideas grouped by their original theme. Only includes the themes with refined ideas.",
+            agent=agent
+        )
+
     def refine_all_ideas_with_feedback_task(self, agent, context, critique):
         return Task(
             description=f"""A user has provided feedback on a set of LinkedIn post ideas. Your task is to generate a completely new set of ideas based on their critique.
@@ -246,8 +276,13 @@ class BrandingTasks:
 
     def title_task(self, agent, context):
         return Task(
-            description=f"Create a concise, 3-5 word title for this branding strategy session. The strategy is:\n\n{context}",
-            expected_output="A single line of text containing only the 3-5 word title.",
+            description=f"""From the provided content strategy, extract a single, concise title.
+            The title must be between 3 and 5 words long.
+            Do not include any other text or formatting.
+
+            CONTENT STRATEGY:
+            {context}""",
+            expected_output="A single line of text containing only the 3-5 word title, with no other text.",
             agent=agent
         )
 

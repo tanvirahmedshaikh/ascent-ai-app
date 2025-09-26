@@ -112,9 +112,10 @@ These ideas are based on your personal branding strategy. Use the options below 
 **Overall Strategy Refinement**
 Actions that apply across all themes.
 <br>
-[Text input area: Provide feedback to refine selected topics or generate new ones for the unselected topics. Feedback will modify the selected ideas; generating new ideas will replace all unselected ones with a fresh batch.]
+[Text input area: Provide feedback to refine all topics or generate new ones only for the unselected topics. Feedback will modify the selected ideas; generating new ideas will replace all unselected ones with a fresh batch.]
 [Refine All Ideas with Feedback] [🔄 Generate New Ideas for All Unselected Topics]
 
 ### UI
 <br>
 ![Post Ideas Tab UI](https://github.com/user-attachments/assets/2ec3cca2-261a-430f-8855-6b457dcdb4bf)
+

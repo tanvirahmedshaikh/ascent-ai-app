@@ -7,7 +7,7 @@ load_dotenv()
 # Define the LLMs
 gemini_llm = LLM(
     api_key=os.getenv("GEMINI_API_KEY"),
-    model="gemini/gemini-1.5-flash"
+    model="gemini/gemini-2.5-flash-lite"
 )
 
 groq_llm = LLM(

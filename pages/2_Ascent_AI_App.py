@@ -453,66 +453,156 @@ else:
             
     with posts_tab:
         st.header("Your Content Ideas")
+        st.markdown("These ideas are based on your personal branding strategy. Use the options below to refine and select your favorites.")
+
         if session.get("post_ideas"):
             post_ideas = session["post_ideas"]
 
-            for theme, ideas in post_ideas.items():
-                st.subheader(theme)
+            # Loop through each theme to display per-theme sections and ideas
+            for theme_index, (theme, ideas) in enumerate(post_ideas.items()):
+                st.subheader(f"{theme_index + 1}. {theme}")
+                
+                # Loop through each idea within the theme
                 for i, idea in enumerate(ideas):
-                    col1, col2, col3 = st.columns([0.05, 0.8, 0.15])
+                    col1, col2, col3, col4, col5 = st.columns([0.05, 0.65, 0.05, 0.20, 0.10])
+                    
                     with col1:
                         idea["checked"] = st.checkbox("", value=idea["checked"], key=f"check_{theme}_{i}")
+                    
                     with col2:
-                        st.markdown(f"- {idea['text']}")
+                        st.markdown(f'"{idea["text"]}"')
+                    
                     with col3:
-                        if st.button("✍️ Write", key=f"write_{theme}_{i}", use_container_width=True):
+                        if st.button("🗑️", key=f"delete_{theme}_{i}", use_container_width=True):
+                            st.session_state.sessions[st.session_state.current_session_id]["post_ideas"][theme].pop(i)
+                            st.rerun()
+
+                    with col4:
+                        if st.button("➕3 More like this", key=f"more_{theme}_{i}", use_container_width=True):
+                            with st.spinner("Generating more ideas..."):
+                                ideator_agent = agents.content_ideation_agent()
+                                similar_ideas_task = tasks.generate_similar_ideas_task(ideator_agent, session["strategy_history"][-1]["content"], theme, idea["text"])
+                                crew = Crew(agents=[ideator_agent], tasks=[similar_ideas_task], process=Process.sequential)
+                                similar_ideas_text = crew.kickoff().raw
+                                
+                                newly_generated_ideas = parse_ideas(similar_ideas_text)
+                                new_ideas_list = newly_generated_ideas.get(theme, [])
+                                
+                                session["post_ideas"][theme].extend(new_ideas_list)
+                                st.rerun()
+                                
+                    with col5:
+                        if st.button("✍️ Write", key=f"write_{theme}_{i}"):
                             session["selected_idea"] = idea['text']
                             session["conversation_state"] = "drafting_post"
                             st.rerun()
-                st.markdown("---")
-            
-            st.subheader("Refine & Regenerate")
-            
-            # Regenerate unchecked ideas
-            if st.button("🔄 Generate New Ideas for Unselected"):
-                themes_to_regenerate = []
-                # Identify which themes have unchecked items
-                for theme, ideas in post_ideas.items():
-                    if any(not idea["checked"] for idea in ideas):
-                        themes_to_regenerate.append(theme)
-                
-                if themes_to_regenerate:
-                    with st.spinner("Generating new ideas for unselected items..."):
-                        ideator_agent = agents.content_ideation_agent()
-                        regenerate_task = tasks.regenerate_ideas_task(ideator_agent, session["strategy_history"][-1]["content"], themes_to_regenerate)
-                        crew = Crew(agents=[ideator_agent], tasks=[regenerate_task], process=Process.sequential)
-                        new_ideas_text = crew.kickoff().raw
-                        newly_generated_ideas = parse_ideas(new_ideas_text)
 
-                        # Replace only the unchecked ideas
-                        for theme, new_ideas in newly_generated_ideas.items():
-                            # Filter out unchecked ideas from the original list
-                            kept_ideas = [idea for idea in post_ideas.get(theme, []) if idea["checked"]]
-                            # Combine kept ideas with new ideas
-                            session["post_ideas"][theme] = kept_ideas + new_ideas
-                        
-                        st.rerun()
-                else:
-                    st.warning("Please unselect at least one idea to regenerate.")
+                # Per-theme refinement section
+                with st.container():
+                    st.markdown(f"**Refine Ideas for This Theme**")
+                    
+                    refinement_feedback = st.text_area("Provide feedback:", key=f"per_theme_feedback_{theme}")
+                    
+                    refinement_cols = st.columns(2)
+                    with refinement_cols[0]:
+                        if st.button("Refine Selected Topics", key=f"refine_{theme}", use_container_width=True):
+                            selected_ideas_to_refine = [idea["text"] for idea in post_ideas[theme] if idea["checked"]]
+                            
+                            if selected_ideas_to_refine and refinement_feedback:
+                                with st.spinner("Refining selected ideas..."):
+                                    ideator_agent = agents.content_ideation_agent()
+                                    refine_task = tasks.refine_ideas_with_feedback_task(ideator_agent, session["strategy_history"][-1]["content"], refinement_feedback, selected_ideas_to_refine)
+                                    crew = Crew(agents=[ideator_agent], tasks=[refine_task], process=Process.sequential)
+                                    refined_ideas_text = crew.kickoff().raw
+                                    
+                                    # The AI may return a slightly different theme name. We need to parse it.
+                                    refined_ideas_dict = parse_ideas(refined_ideas_text)
+                                    
+                                    # Assume the first (and only) theme returned by the AI is the one we're refining.
+                                    # Use the original theme variable to update the session state.
+                                    refined_ideas_list = list(refined_ideas_dict.values())[0] if refined_ideas_dict else []
+                                    
+                                    # Create a new list of ideas by keeping the unselected ones
+                                    # and adding the newly refined ideas.
+                                    kept_ideas = [idea for idea in post_ideas[theme] if not idea["checked"]]
+                                    
+                                    # Update the session state with the new list
+                                    session["post_ideas"][theme] = kept_ideas + refined_ideas_list
+                                
+                                st.rerun()
+                            else:
+                                st.warning("Please select topics and provide feedback to refine.")
 
-            # Refine all ideas with feedback
-            refinement_feedback = st.text_area("Provide feedback to refine all ideas:", key="refinement_feedback")
-            if st.button("Refine All Ideas with Feedback"):
-                if refinement_feedback:
-                    with st.spinner("Refining all ideas based on your feedback..."):
-                        ideator_agent = agents.content_ideation_agent()
-                        refine_task = tasks.refine_ideation_task(ideator_agent, session["strategy_history"][-1]["content"], refinement_feedback)
-                        crew = Crew(agents=[ideator_agent], tasks=[refine_task], process=Process.sequential)
-                        new_ideas_text = crew.kickoff().raw
-                        session["post_ideas"] = parse_ideas(new_ideas_text)
-                        st.rerun()
-                else:
-                    st.warning("Please provide feedback before refining.")
+                    with refinement_cols[1]:
+                        if st.button("🔄 Generate New Ideas for Unselected Topics", key=f"regenerate_{theme}", use_container_width=True):
+                            unselected_ideas_count = sum(1 for idea in post_ideas[theme] if not idea["checked"])
+                            if unselected_ideas_count > 0:
+                                with st.spinner(f"Generating {unselected_ideas_count} new ideas..."):
+                                    ideator_agent = agents.content_ideation_agent()
+                                    generate_task = tasks.generate_new_ideas_for_theme_task(ideator_agent, session["strategy_history"][-1]["content"], theme, unselected_ideas_count)
+                                    crew = Crew(agents=[ideator_agent], tasks=[generate_task], process=Process.sequential)
+                                    new_ideas_text = crew.kickoff().raw
+                                    newly_generated_ideas = parse_ideas(new_ideas_text)
+
+                                    kept_ideas = [idea for idea in post_ideas[theme] if idea["checked"]]
+                                    session["post_ideas"][theme] = kept_ideas + newly_generated_ideas.get(theme, [])
+                                    st.rerun()
+                            else:
+                                st.warning("Please unselect at least one idea to regenerate.")
+    
+
+                   
+            # Start of the Overall Strategy Refinement section
+            st.subheader("Overall Strategy Refinement")
+            st.markdown("Actions that apply across all themes.")
+
+            overall_feedback = st.text_area("Provide feedback to refine all topics or generate new ones only for the unselected topics. Feedback will modify the selected ideas; generating new ideas will replace all unselected ones with a fresh batch.", key="overall_feedback_area")
+            overall_cols = st.columns(2)
+
+            with overall_cols[0]:
+                if st.button("Refine All Ideas with Feedback", key="refine_all_selected_btn", use_container_width=True):
+                    selected_ideas = []
+                    for theme, ideas in session["post_ideas"].items():
+                        for idea in ideas:
+                            if idea["checked"]:
+                                selected_ideas.append(f"THEME: {theme}\n- {idea['text']}")
+
+                    if selected_ideas and overall_feedback:
+                        with st.spinner("Refining all selected ideas..."):
+                            ideator_agent = agents.content_ideation_agent()
+                            refine_task = tasks.refine_selected_ideas_across_themes_task(ideator_agent, session["strategy_history"][-1]["content"], overall_feedback, selected_ideas)
+                            crew = Crew(agents=[ideator_agent], tasks=[refine_task], process=Process.sequential)
+                            refined_ideas_text = crew.kickoff().raw
+                            refined_ideas = parse_ideas(refined_ideas_text)
+
+                            for refined_theme, new_ideas in refined_ideas.items():
+                                ideas_to_keep = [idea for idea in session["post_ideas"][refined_theme] if idea["text"] not in [s.replace(f"THEME: {refined_theme}\n- ", "") for s in selected_ideas]]
+                                session["post_ideas"][refined_theme] = ideas_to_keep + new_ideas
+                            st.rerun()
+                    else:
+                        st.warning("Please select ideas and provide feedback to refine.")
+
+            with overall_cols[1]:
+                if st.button("🔄 Generate New Ideas for All Unselected Topics", key="regenerate_all_unselected_btn", use_container_width=True):
+                    themes_to_regenerate = []
+                    for theme, ideas in session["post_ideas"].items():
+                        if not any(idea["checked"] for idea in ideas):
+                            themes_to_regenerate.append(theme)
+                    
+                    if themes_to_regenerate:
+                        with st.spinner("Generating new ideas for all unselected themes..."):
+                            ideator_agent = agents.content_ideation_agent()
+                            regenerate_task = tasks.regenerate_ideas_for_all_unselected_topics_task(ideator_agent, session["strategy_history"][-1]["content"], themes_to_regenerate)
+                            crew = Crew(agents=[ideator_agent], tasks=[regenerate_task], process=Process.sequential)
+                            new_ideas_text = crew.kickoff().raw
+                            newly_generated_ideas = parse_ideas(new_ideas_text)
+
+                            for theme, new_ideas in newly_generated_ideas.items():
+                                kept_ideas = [idea for idea in session["post_ideas"][theme] if idea["checked"]]
+                                session["post_ideas"][theme] = kept_ideas + new_ideas
+                            st.rerun()
+                    else:
+                        st.warning("All ideas are selected. Please unselect ideas to regenerate.")
 
         else:
             st.info("Your generated post ideas will appear here once the strategy is finalized.")
