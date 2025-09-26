@@ -24,6 +24,9 @@ if "editing_session_id" not in st.session_state:
     st.session_state.editing_session_id = None
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "📝 Brand Strategy"
+if "qa_critique" not in st.session_state:
+    st.session_state.qa_critique = ""
+
 
 # --- HELPER FUNCTIONS ---
 def get_current_session():
@@ -41,6 +44,7 @@ def new_session():
         "context": {}, 
         "strategy_history": [],
         "post_ideas": {},
+        "draft_history": [],
         "draft": "", 
         "selected_idea": None
     }
@@ -80,6 +84,7 @@ def create_mock_session():
                 {"text": "Unlocking the numbers: how data-driven innovation improved process efficiency.", "checked": False}
             ]
         },
+        "draft_history": [],
         "draft": "",
         "selected_idea": None
     }
@@ -89,12 +94,9 @@ def create_mock_session():
     st.rerun()
 
 def parse_ideas(text):
-    """Parses the AI's text output into a dictionary of themes and ideas.
-       This version is more robust to handle themes at the start or end of the section."""
+    """Parses the AI's text output into a dictionary of themes and ideas."""
     ideas_dict = {}
     current_theme = None
-    
-    # Split the text by "THEME:" to find all theme sections
     sections = re.split(r'THEME:\s*', text, flags=re.IGNORECASE)[1:]
     
     for section in sections:
@@ -152,6 +154,7 @@ with st.sidebar:
                     st.session_state.current_session_id = session_id
                     st.session_state.editing_session_id = None
                     st.session_state.active_tab = "📝 Brand Strategy"
+                    st.session_state.qa_critique = "" # Clear critique
                     st.rerun()
             with col2:
                 if st.button("✏️", key=f"start_edit_{session_id}", use_container_width=True):
@@ -162,6 +165,7 @@ with st.sidebar:
                     del st.session_state.sessions[session_id]
                     if st.session_state.current_session_id == session_id:
                         st.session_state.current_session_id = None
+                    st.session_state.qa_critique = "" # Clear critique
                     st.rerun()
 
             if st.session_state.editing_session_id == session_id:
@@ -495,6 +499,7 @@ else:
                         if st.button("✍️ Write", key=f"write_{theme}_{i}"):
                             session["selected_idea"] = idea['text']
                             session["conversation_state"] = "drafting_post"
+                            st.session_state.qa_critique = "" # Clear critique
                             st.rerun()
 
                 # Per-theme refinement section
@@ -515,18 +520,12 @@ else:
                                     crew = Crew(agents=[ideator_agent], tasks=[refine_task], process=Process.sequential)
                                     refined_ideas_text = crew.kickoff().raw
                                     
-                                    # The AI may return a slightly different theme name. We need to parse it.
                                     refined_ideas_dict = parse_ideas(refined_ideas_text)
                                     
-                                    # Assume the first (and only) theme returned by the AI is the one we're refining.
-                                    # Use the original theme variable to update the session state.
                                     refined_ideas_list = list(refined_ideas_dict.values())[0] if refined_ideas_dict else []
                                     
-                                    # Create a new list of ideas by keeping the unselected ones
-                                    # and adding the newly refined ideas.
                                     kept_ideas = [idea for idea in post_ideas[theme] if not idea["checked"]]
                                     
-                                    # Update the session state with the new list
                                     session["post_ideas"][theme] = kept_ideas + refined_ideas_list
                                 
                                 st.rerun()
@@ -607,48 +606,116 @@ else:
         else:
             st.info("Your generated post ideas will appear here once the strategy is finalized.")
 
-
     with writer_tab:
-        st.header("Your Final Post")
+        st.subheader("Your Final Workspace ✨")
+        st.markdown("Review, refine, and save drafts of your content. Use the tools below to get AI-powered feedback and download a local copy of your work.")
+
+        # This single block now handles drafting AND critiquing
         if session.get("conversation_state") == "drafting_post" and session.get("selected_idea"):
             with st.spinner("The Ghostwriter is drafting your post..."):
-                writer_agent = agents.linkedin_ghostwriter_agent()
-                writing_task_instance = tasks.writing_task(writer_agent, session["selected_idea"])
-                crew = Crew(agents=[writer_agent], tasks=[writing_task_instance], process=Process.sequential)
-                draft = crew.kickoff().raw
-                session["draft"] = draft
-                session["conversation_state"] = "post_drafted"
-                st.rerun()
+                try:
+                    # 1. Draft the post
+                    writer_agent = agents.linkedin_ghostwriter_agent()
+                    writing_task_instance = tasks.writing_task(writer_agent, session["selected_idea"])
+                    writing_crew = Crew(agents=[writer_agent], tasks=[writing_task_instance], process=Process.sequential)
+                    draft = writing_crew.kickoff().raw
+                    session["draft"] = draft
+
+                    # 2. Immediately run the QA check on the new draft
+                    qa_agent = agents.quality_assurance_agent()
+                    qa_task = tasks.qa_critique_task(qa_agent, draft)
+                    qa_crew = Crew(agents=[qa_agent], tasks=[qa_task], process=Process.sequential)
+                    critique = qa_crew.kickoff().raw
+                    st.session_state.qa_critique = critique
+
+                    session["conversation_state"] = "post_drafted"
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"An error occurred. Please try again. Error: {e}")
+                    session["conversation_state"] = "strategy_approved" # Revert state
+                    session["selected_idea"] = None # Clear selected idea
+                    st.session_state.qa_critique = ""
+                    st.rerun()
 
         if session.get("draft"):
-            st.subheader("Drafted Post")
-            st.markdown(session["draft"])
-            st.divider()
-
-            st.subheader("Quality Check & Refinement")
-            if st.button("🔍 Run Quality Check"):
-                with st.spinner("The Quality Assurance Agent is reviewing your post..."):
-                    qa_agent = agents.quality_assurance_agent()
-                    qa_task = tasks.qa_critique_task(qa_agent, session["draft"])
-                    crew = Crew(agents=[qa_agent], tasks=[qa_task], process=Process.sequential)
-                    critique = crew.kickoff().raw
-                    st.session_state.qa_critique = critique
+            # Post Preview and Actions
+            st.subheader("Post Preview")
+            st.markdown(f"""
+                <div style="border:1px solid #ddd; border-radius:8px; padding:20px; background-color:#fafafa; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                    {session['draft']}
+                </div>
+            """, unsafe_allow_html=True)
             
-            if "qa_critique" in st.session_state:
-                with st.chat_message("assistant"):
-                    st.markdown(st.session_state.qa_critique)
-
-            feedback = st.text_area("Or, provide your own feedback for refinement:")
-            if st.button("Refine Draft"):
-                if feedback:
-                    with st.spinner("The Ghostwriter is refining the draft based on your feedback..."):
-                        writer_agent = agents.linkedin_ghostwriter_agent()
-                        refine_task = tasks.refine_writing_task(writer_agent, session["draft"], feedback)
-                        crew = Crew(agents=[writer_agent], tasks=[refine_task], process=Process.sequential)
-                        new_draft = crew.kickoff().raw
-                        session["draft"] = new_draft
-                        st.rerun()
+            copy_col, save_col, download_col = st.columns(3)
+            with copy_col:
+                if st.button("📋 Copy to Clipboard", use_container_width=True):
+                    st.code(session["draft"], language="text")
+                    st.toast("Post copied! Use CTRL+C to paste.")
+            with save_col:
+                if st.button("💾 Save Draft", use_container_width=True):
+                    session["draft_history"].append({
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "content": session["draft"]
+                    })
+                    st.success("Draft saved successfully!")
+            with download_col:
+                st.download_button("⬇️ Download as Text", 
+                                    data=session["draft"], 
+                                    file_name=f"linkedin_post_{datetime.now().strftime('%Y%m%d%H%M')}.txt",
+                                    mime="text/plain",
+                                    use_container_width=True)
+            
+            # Quality Check & Refinement Expander
+            with st.expander("🛠️ Quality Check & Refinement", expanded=True):
+                st.markdown("#### Agent Feedback")
+                if st.session_state.qa_critique:
+                    st.markdown(f"""
+                        <div style="border:1px solid #ccc; border-radius:6px; padding:12px; background-color:#f9f9f9; font-style:italic;">
+                            {st.session_state.qa_critique}
+                        </div>
+                    """, unsafe_allow_html=True)
                 else:
-                    st.error("Please provide feedback before refining.")
+                    # Show this message if the QA has been cleared or not run yet
+                    st.info("The QA agent will provide feedback here after the draft is created or refined.")
+                
+                st.markdown("#### Refine with Your Own Feedback")
+                feedback = st.text_area("✏️ What would you like to change?", height=100)
+                
+                if st.button("✨ Refine Draft", use_container_width=True):
+                    if feedback:
+                        with st.spinner("Refining draft based on your feedback..."):
+                            writer_agent = agents.linkedin_ghostwriter_agent()
+                            refine_task = tasks.refine_writing_task(writer_agent, session["draft"], feedback)
+                            refine_crew = Crew(agents=[writer_agent], tasks=[refine_task], process=Process.sequential)
+                            try:
+                                new_draft = refine_crew.kickoff().raw
+                                session["draft"] = new_draft
+                                st.session_state.qa_critique = "" # Clear critique
+                                st.success("Draft refined!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Failed to refine draft. Please try again. Error: {e}")
+                    else:
+                        st.error("Please provide feedback before refining.")
+
+            # Saved Drafts History
+            with st.expander("📜 Saved Drafts History"):
+                if session.get("draft_history"):
+                    for i, draft_entry in enumerate(reversed(session["draft_history"])):
+                        display_index = len(session['draft_history']) - i
+                        st.markdown(f"**Draft {display_index}** saved at `{draft_entry['timestamp']}`")
+                        
+                        hist_col1, hist_col2 = st.columns([0.8, 0.2])
+                        with hist_col1:
+                            with st.expander("View Content"):
+                                st.markdown(draft_entry['content'])
+                        with hist_col2:
+                            if st.button("↩️ Restore", key=f"restore_{display_index}"):
+                                session["draft"] = draft_entry["content"]
+                                st.session_state.qa_critique = ""
+                                st.success("Draft restored!")
+                                st.rerun()
+                else:
+                    st.info("No drafts have been saved yet. Click the 'Save Draft' button to create a history.")
         else:
-            st.info("Select an idea from the 'Post Ideas' tab to start writing.")
+            st.info("💡 Select an idea from the 'Post Ideas' tab to start writing.")

@@ -119,3 +119,38 @@ Actions that apply across all themes.
 <br>
 ![Post Ideas Tab UI](https://github.com/user-attachments/assets/2ec3cca2-261a-430f-8855-6b457dcdb4bf)
 
+
+# Final Post Tab Logic and UI
+
+The **Final Post** tab brings your drafted post to life, offering refinement, quality checks, and essential actions.
+
+---
+
+## Post Preview & Actions
+- **Social Media Post Preview**  
+  Displays the drafted content within a stylized container, mimicking a real LinkedIn post for better visualization.
+
+- **Final Actions** (located below the preview):
+  - **Copy to Clipboard** → Easily copy the post’s text.  
+  - **Save Draft** → Store the current version for later.  
+  - **Download as Text** → Save a local copy of the post.  
+
+---
+
+## Quality Check & Refinement
+A collapsible **Quality Check & Refinement** expander houses the core feedback loop:
+
+- **Quality Assurance Agent**  
+  Automatically provides constructive, bulleted feedback each time a new draft is generated.
+
+- **User Feedback Area**  
+  A text area allows you to provide your own feedback.  
+  This input can be used to refine the draft by rerunning the **Ghostwriter agent**.
+
+---
+
+## Saved Drafts History
+A collapsible **Saved Drafts History** expander maintains a record of all saved versions of your post:
+
+- Each saved draft can be **viewed and restored with a single click**.  
+- Enables quick reversion to earlier versions if needed.
