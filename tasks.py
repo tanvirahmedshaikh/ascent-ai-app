@@ -299,15 +299,25 @@ class BrandingTasks:
 
     def qa_critique_task(self, agent, context):
         return Task(
-            description=f"""Review the following drafted LinkedIn post for clarity, tone, and strategic alignment. Your goal is to provide **actionable feedback** to optimize it for maximum engagement and impact.
+            description=f"""Review the following drafted LinkedIn post for clarity, tone, and strategic alignment. 
+            Your goal is to provide **actionable feedback** to optimize it for maximum engagement and impact.
 
-            Even if the post is excellent, identify **at least one area for improvement**. This could be anything from refining the hook, suggesting a different type of call-to-action, or proposing an alternative structure.
-
-            Provide your feedback as a concise, bulleted list. Do NOT state that the post is "approved," "ready to publish," or "perfect." Your output must ONLY be the bulleted list of feedback.
+            Requirements:
+            - Identify at least one improvement area, even if the draft is strong.
+            - Give 2-3 specific, actionable suggestions (clarity, structure, hook, or CTA).
+            - DO NOT explain your reasoning or describe what you are doing.
+            - DO NOT include any text other than the bullet points.
+            - DO NOT say the post is "approved," "perfect," or "ready to publish."
 
             DRAFT POST:
-            {context}""",
-            expected_output="A bulleted list of 2-3 specific, actionable suggestions to improve the post, formatted with bullet points.",
+            {context}
+
+            🚨 OUTPUT FORMAT (MANDATORY):
+            - Each suggestion must be a single bullet point.
+            - Output must ONLY be a bulleted list.
+            - No introduction, no explanation, no closing remarks.
+            """,
+            expected_output="Exactly 2-3 bullet points with actionable suggestions, nothing else.",
             agent=agent
         )
 

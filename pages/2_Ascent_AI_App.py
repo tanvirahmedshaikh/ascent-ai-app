@@ -93,6 +93,7 @@ def create_mock_session():
     st.toast("Mock session created successfully! You can now test the Post Ideas tab.")
     st.rerun()
 
+
 def parse_ideas(text):
     """Parses the AI's text output into a dictionary of themes and ideas."""
     ideas_dict = {}
@@ -690,8 +691,15 @@ else:
                             try:
                                 new_draft = refine_crew.kickoff().raw
                                 session["draft"] = new_draft
-                                st.session_state.qa_critique = "" # Clear critique
-                                st.success("Draft refined!")
+
+                                # 🔄 Immediately run QA critique on the refined draft
+                                qa_agent = agents.quality_assurance_agent()
+                                qa_task = tasks.qa_critique_task(qa_agent, new_draft)
+                                qa_crew = Crew(agents=[qa_agent], tasks=[qa_task], process=Process.sequential)
+                                critique = qa_crew.kickoff().raw
+                                st.session_state.qa_critique = critique
+
+                                st.success("Draft refined and re-critiqued!")
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"Failed to refine draft. Please try again. Error: {e}")
@@ -719,3 +727,7 @@ else:
                     st.info("No drafts have been saved yet. Click the 'Save Draft' button to create a history.")
         else:
             st.info("💡 Select an idea from the 'Post Ideas' tab to start writing.")
+
+
+
+
