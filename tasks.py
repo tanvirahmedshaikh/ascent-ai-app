@@ -333,3 +333,51 @@ class BrandingTasks:
             expected_output="A new, improved version of the LinkedIn post that incorporates the user's feedback.",
             agent=agent
         )
+    
+    # NEW: Task for generating a specified number of single post ideas on a given topic
+    def single_post_ideas_task(self, agent, user_context, target_role, target_audience, positioning, topic, num_ideas):
+        return Task(
+            description=f"""Based on the user's professional context and goals, generate {num_ideas} distinct, concise, one-liner LinkedIn post ideas.
+            These ideas should revolve around the specified topic and align with the user's target role, audience, and desired positioning.
+
+            User's Context: {user_context}
+            Target Role: {target_role}
+            Target Audience: {target_audience}
+            Desired Positioning: {positioning}
+            Specific Topic for Ideas: {topic if topic else 'general professional insights'}
+
+            The output must be structured exactly as follows, with each idea on a new line. Do not include a 'THEME:' header.
+            - [Idea 1]
+            - [Idea 2]
+            - [Idea 3]
+            ... and so on for {num_ideas} ideas.
+
+            Ensure the ideas are engaging and suitable for LinkedIn.
+            """,
+            expected_output=f"A bulleted list of {num_ideas} distinct one-liner LinkedIn post ideas related to the specified topic, without a 'THEME:' header.",
+            agent=agent
+        )
+    
+    # NEW: Task for generating a cohesive 3-part series of post ideas on a given topic
+    def short_series_ideas_task(self, agent, user_context, target_role, target_audience, positioning, topic):
+        return Task(
+            description=f"""Based on the user's professional context and goals, generate a cohesive 3-part LinkedIn post series.
+            Each part should be a concise, one-liner idea that builds upon the previous one, guiding the reader through a clear narrative or progression on the specified topic.
+            The series should align with the user's target role, audience, and desired positioning.
+
+            User's Context: {user_context}
+            Target Role: {target_role}
+            Target Audience: {target_audience}
+            Desired Positioning: {positioning}
+            Specific Topic for 3-Part Series: {topic}
+
+            The output must be structured exactly as follows. Do not include a 'THEME:' header.
+            - Part 1: [Concise idea for the first post]
+            - Part 2: [Concise idea for the second post, building on Part 1]
+            - Part 3: [Concise idea for the third post, concluding the series]
+
+            Ensure the ideas are engaging and suitable for LinkedIn, and that the series flows logically.
+            """,
+            expected_output="A 3-part bulleted list, each starting with 'Part X:', providing concise one-liner LinkedIn post ideas for a cohesive series on the specified topic, without a 'THEME:' header.",
+            agent=agent
+        )

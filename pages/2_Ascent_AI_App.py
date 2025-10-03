@@ -15,6 +15,15 @@ load_dotenv()
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="Ascent AI", page_icon="🚀", layout="wide")
 
+st.markdown("""
+<style>
+    .centered-cell .stButton > button {
+        margin: 0 auto;
+        display: block;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # --- SESSION STATE INITIALIZATION ---
 if "sessions" not in st.session_state:
     st.session_state.sessions = {}
@@ -44,12 +53,31 @@ def new_session():
         "context": {}, 
         "strategy_history": [],
         "post_ideas": {},
+        "quick_ideas": [],  # New key for quick ideas
         "draft_history": [],
         "draft": "", 
         "selected_idea": None
     }
     st.session_state.editing_session_id = None
     st.session_state.active_tab = "📝 Brand Strategy"
+
+def new_quick_session():
+    session_id = str(uuid.uuid4())
+    st.session_state.current_session_id = session_id
+    st.session_state.sessions[session_id] = {
+        "title": "Quick Ideas Session",
+        "messages": [],
+        "conversation_state": "quick_ideas_start",
+        "context": {},
+        "strategy_history": [],
+        "post_ideas": {},
+        "quick_ideas": [],
+        "draft_history": [],
+        "draft": "",
+        "selected_idea": None
+    }
+    st.session_state.editing_session_id = None
+    st.session_state.active_tab = "✨ Quick Ideas"
 
 def create_mock_session():
     """Creates a pre-populated session for testing purposes."""
@@ -126,6 +154,16 @@ def parse_ideas(text):
                 ideas_dict[current_theme][-1]["text"] += " " + line
     return ideas_dict
 
+def parse_quick_ideas(text):
+    """Parses a simple bulleted list of ideas with no theme header."""
+    ideas_list = []
+    lines = text.strip().split('\n')
+    for line in lines:
+        line = line.strip()
+        if line.startswith('- '):
+            idea = line[2:].strip()
+            ideas_list.append({"text": idea, "checked": False})
+    return ideas_list
 
 # --- AGENT & TASK DEFINITIONS ---
 agents = BrandingAgents()
@@ -136,8 +174,12 @@ with st.sidebar:
     st.title("🚀 Ascent AI")
     st.markdown("Intelligent Branding for Your Career Ascent")
 
-    if st.button("➕ New Session", use_container_width=True, type="primary"):
+    if st.button("📝 Start Brand Strategy", use_container_width=True, type="primary"):
         new_session()
+        st.rerun()
+
+    if st.button("✨ Quick Ideas", use_container_width=True, type="secondary"):
+        new_quick_session()
         st.rerun()
     
     if st.button("🧪 Load Test Session", use_container_width=True):
@@ -157,11 +199,11 @@ with st.sidebar:
                     st.session_state.active_tab = "📝 Brand Strategy"
                     st.session_state.qa_critique = "" # Clear critique
                     st.rerun()
-            with col2:
+            with col2.container(border=False):
                 if st.button("✏️", key=f"start_edit_{session_id}", use_container_width=True):
                     st.session_state.editing_session_id = session_id
                     st.rerun()
-            with col3:
+            with col3.container(border=False):
                 if st.button("🗑️", key=f"delete_{session_id}", use_container_width=True):
                     del st.session_state.sessions[session_id]
                     if st.session_state.current_session_id == session_id:
@@ -184,10 +226,9 @@ if not session:
 else:
     st.title("Create Your Personal Branding Strategy") 
 
-    strategy_tab, posts_tab, writer_tab = st.tabs(["📝 Brand Strategy", "💡 Post Ideas", "✍️ Final Post"])
+    strategy_tab, posts_tab, quick_ideas_tab, writer_tab = st.tabs(["📝 Brand Strategy", "💡 Post Ideas", "✨ Quick Ideas", "✍️ Final Post"])
 
     with strategy_tab:
-
         all_states = [
             "start", "awaiting_resume_choice", "awaiting_resume_upload", "awaiting_intro",
             "awaiting_confirmation", "awaiting_target", "awaiting_audience",
@@ -417,7 +458,7 @@ else:
                         ideas_text = crew.kickoff().raw
                         session["post_ideas"] = parse_ideas(ideas_text)
                         response = "Great! The strategy is finalized. I've also generated some initial post ideas for you. You can view them now in the **💡 Post Ideas** tab."
-                        st.toast("Post ideas generated!")
+                        st.toast("Post ideas generated! Go to the 'Post Ideas' tab to view them.")
                         session["conversation_state"] = "strategy_approved"
                 else:
                     with st.spinner("Refining the strategy based on your feedback..."):
@@ -447,15 +488,25 @@ else:
             st.markdown("---")
             st.subheader("Strategy History")
             
-            history_options = [
-                f"Version {item['version']} ({item['timestamp']})"
-                for item in session["strategy_history"]
-            ]
-            selected_index = st.selectbox("Select a version to view:", range(len(history_options)), format_func=lambda i: history_options[i])
-            
-            selected_strategy = session["strategy_history"][selected_index]["content"]
-            st.text_area("Selected Strategy", value=selected_strategy, height=500, key=f"strategy_display_{selected_index}")
-            
+            with st.expander("📜 Saved Strategy History"):
+                if session.get("strategy_history"):
+                    for i, strategy_entry in enumerate(reversed(session["strategy_history"])):
+                        display_index = len(session['strategy_history']) - i
+                        st.markdown(f"**Version {display_index}** saved at `{strategy_entry['timestamp']}`")
+                        
+                        hist_col1, hist_col2 = st.columns([0.8, 0.2])
+                        with hist_col1:
+                            with st.expander("View Content"):
+                                st.markdown(strategy_entry['content'])
+
+                        with hist_col2:
+                            if st.button("🗑️ Delete", key=f"delete_strategy_{display_index}", use_container_width=True):
+                                del session["strategy_history"][len(session["strategy_history"]) - i - 1]
+                                st.success("Strategy version deleted!")
+                                st.rerun()
+                else:
+                    st.info("No strategies have been saved yet.")
+           
     with posts_tab:
         st.header("Your Content Ideas")
         st.markdown("These ideas are based on your personal branding strategy. Use the options below to refine and select your favorites.")
@@ -500,6 +551,7 @@ else:
                         if st.button("✍️ Write", key=f"write_{theme}_{i}"):
                             session["selected_idea"] = idea['text']
                             session["conversation_state"] = "drafting_post"
+                            st.toast("Drafting post... go to the 'Final Post' tab to see it!", icon="✍️")
                             st.session_state.qa_critique = "" # Clear critique
                             st.rerun()
 
@@ -551,7 +603,7 @@ else:
                                 st.warning("Please unselect at least one idea to regenerate.")
     
 
-                   
+                
             # Start of the Overall Strategy Refinement section
             st.subheader("Overall Strategy Refinement")
             st.markdown("Actions that apply across all themes.")
@@ -606,6 +658,186 @@ else:
 
         else:
             st.info("Your generated post ideas will appear here once the strategy is finalized.")
+
+    with quick_ideas_tab:
+        st.header("✨ Quick Ideas")
+        st.markdown("Generate on-demand post ideas on any topic, without needing a full brand strategy.")
+
+        # --- GENERATE IDEAS SECTION ---
+        with st.expander("🚀 Generate New Ideas", expanded=True):
+            with st.form("quick_idea_generation_form"):
+                topic = st.text_input("What topic or theme are the ideas about?", placeholder="e.g., The future of AI in content marketing")
+                generation_type = st.radio("Choose idea type:", ["Single Ideas", "3-Part Series"], horizontal=True)
+                
+                num_ideas = 3
+                if generation_type == "Single Ideas":
+                    num_ideas = st.number_input("Number of ideas to generate:", min_value=1, max_value=10, value=3)
+
+                submitted = st.form_submit_button("🚀 Generate Ideas")
+
+            if submitted and topic:
+                with st.spinner("Generating ideas..."):
+                    ideator_agent = agents.content_ideation_agent()
+                    
+                    if generation_type == "Single Ideas":
+                        task = tasks.single_post_ideas_task(
+                            ideator_agent, 
+                            user_context=session["context"].get("user_context", ""),
+                            target_role=session["context"].get("target_role", ""),
+                            target_audience=session["context"].get("target_audience", ""),
+                            positioning=session["context"].get("positioning", ""),
+                            topic=topic,
+                            num_ideas=num_ideas
+                        )
+                    else:
+                        task = tasks.short_series_ideas_task(
+                            ideator_agent,
+                            user_context=session["context"].get("user_context", ""),
+                            target_role=session["context"].get("target_role", ""),
+                            target_audience=session["context"].get("target_role", ""),
+                            positioning=session["context"].get("positioning", ""),
+                            topic=topic
+                        )
+                    crew = Crew(agents=[ideator_agent], tasks=[task], process=Process.sequential)
+                    ideas_text = crew.kickoff().raw
+                    
+                    new_ideas = parse_quick_ideas(ideas_text)
+                    session["quick_ideas"] = new_ideas
+                    st.success("Ideas generated!")
+                    st.rerun()
+
+        # --- MANAGE & REFINE IDEAS SECTION ---
+        with st.expander("🛠️ Manage & Refine Ideas"):
+            if session.get("quick_ideas"):
+                st.markdown("Use the checkboxes to select ideas for refinement or regeneration.")
+                
+                # Display ideas with checkboxes and actions
+                for i, idea in enumerate(session["quick_ideas"]):
+                    col1, col2, col3, col4, col5, col6 = st.columns([0.05, 0.55, 0.05, 0.10, 0.15, 0.10])
+                    
+                    with col1:
+                        idea["checked"] = st.checkbox("", value=idea["checked"], key=f"current_idea_check_{i}")
+                    
+                    with col2:
+                        st.markdown(f'"{idea["text"]}"')
+                    
+                    with col3: # Trash can
+                        if st.button("🗑️", key=f"current_idea_delete_{i}", use_container_width=True):
+                            session["quick_ideas"].pop(i)
+                            st.rerun()
+                    
+                    with col4: # Save button
+                        if st.button("💾 Save", key=f"current_idea_save_{i}", use_container_width=True):
+                            if "quick_ideas_history" not in session:
+                                session["quick_ideas_history"] = []
+                            session["quick_ideas_history"].append({
+                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "content": idea["text"]
+                            })
+                            st.success("Idea saved!")
+
+                    with col5: # More like this button
+                        if st.button("➕3 More like this", key=f"current_idea_more_{i}", use_container_width=True):
+                            with st.spinner("Generating more ideas..."):
+                                ideator_agent = agents.content_ideation_agent()
+                                similar_ideas_task = tasks.generate_similar_ideas_task(ideator_agent, "", "Quick Ideas", idea["text"])
+                                crew = Crew(agents=[ideator_agent], tasks=[similar_ideas_task], process=Process.sequential)
+                                similar_ideas_text = crew.kickoff().raw
+                                
+                                newly_generated_ideas = parse_quick_ideas(similar_ideas_text)
+                                session["quick_ideas"].extend(newly_generated_ideas)
+                                st.rerun()
+
+                    with col6: # Write button
+                        if st.button("✍️ Write", key=f"current_idea_write_{i}"):
+                            session["selected_idea"] = idea['text']
+                            session["conversation_state"] = "drafting_post"
+                            st.toast("Drafting post... go to the 'Final Post' tab to see it!", icon="✍️")
+                            st.session_state.qa_critique = ""
+                            st.rerun()
+                
+                st.markdown("---")
+                
+                # Overall Refinement Section
+                st.subheader("Overall Refinement")
+                st.markdown("Actions that apply across all ideas.")
+
+                overall_feedback = st.text_area("Provide feedback to refine all selected ideas or regenerate all unselected ideas.", key="quick_overall_feedback_area")
+                overall_cols = st.columns(2)
+
+                with overall_cols[0]:
+                    if st.button("Refine Selected Ideas", use_container_width=True, key="quick_refine_selected_btn"):
+                        selected_ideas_to_refine = [idea["text"] for idea in session["quick_ideas"] if idea["checked"]]
+                        if selected_ideas_to_refine and overall_feedback:
+                            with st.spinner("Refining selected ideas..."):
+                                ideator_agent = agents.content_ideation_agent()
+                                refine_task = tasks.refine_ideas_with_feedback_task(ideator_agent, "", overall_feedback, selected_ideas_to_refine)
+                                crew = Crew(agents=[ideator_agent], tasks=[refine_task], process=Process.sequential)
+                                refined_ideas_text = crew.kickoff().raw
+                                
+                                refined_ideas_list = parse_quick_ideas(refined_ideas_text)
+                                kept_ideas = [idea for idea in session["quick_ideas"] if not idea["checked"]]
+                                
+                                session["quick_ideas"] = kept_ideas + refined_ideas_list
+                                st.rerun()
+                        else:
+                            st.warning("Please select ideas and provide feedback to refine.")
+
+                with overall_cols[1]:
+                    if st.button("🔄 Generate New Ideas for Unselected", use_container_width=True, key="quick_regenerate_unselected_btn"):
+                        unselected_ideas_count = sum(1 for idea in session["quick_ideas"] if not idea["checked"])
+                        if unselected_ideas_count > 0:
+                            with st.spinner(f"Generating {unselected_ideas_count} new ideas..."):
+                                ideator_agent = agents.content_ideation_agent()
+                                # Assuming we saved the original topic, or using a generic placeholder
+                                original_topic = topic or "general professional insights"
+                                generate_task = tasks.single_post_ideas_task(
+                                    ideator_agent, 
+                                    user_context=session["context"].get("user_context", ""),
+                                    target_role=session["context"].get("target_role", ""),
+                                    target_audience=session["context"].get("target_audience", ""),
+                                    positioning=session["context"].get("positioning", ""),
+                                    topic=original_topic,
+                                    num_ideas=unselected_ideas_count
+                                )
+                                crew = Crew(agents=[ideator_agent], tasks=[generate_task], process=Process.sequential)
+                                new_ideas_text = crew.kickoff().raw
+                                newly_generated_ideas = parse_quick_ideas(new_ideas_text)
+
+                                kept_ideas = [idea for idea in session["quick_ideas"] if idea["checked"]]
+                                session["quick_ideas"] = kept_ideas + newly_generated_ideas
+                                st.rerun()
+                        else:
+                            st.warning("All ideas are selected. Please unselect ideas to regenerate.")
+            else:
+                st.info("Start by generating ideas using the form above.")
+
+        # --- SAVED IDEAS HISTORY SECTION ---
+        with st.expander("📜 Saved Ideas History"):
+            if "quick_ideas_history" not in session:
+                session["quick_ideas_history"] = []
+            
+            if session.get("quick_ideas_history"):
+                for i, saved_idea in enumerate(reversed(session["quick_ideas_history"])):
+                    display_index = len(session['quick_ideas_history']) - i
+                    st.markdown(f"**Saved Idea {display_index}** at `{saved_idea['timestamp']}`")
+                    
+                    hist_col1, hist_col2, hist_col3 = st.columns([0.7, 0.15, 0.15])
+                    with hist_col1:
+                        with st.expander("View Content"):
+                            st.markdown(f'"{saved_idea["content"]}"')
+                    with hist_col2:
+                        if st.button("↩️ Reactivate", key=f"quick_history_restore_{i}", use_container_width=True):
+                            session["quick_ideas"].append({"text": saved_idea["content"], "checked": False})
+                            st.success("Idea reactivated!")
+                            st.rerun()
+                    with hist_col3:
+                        if st.button("🗑️ Delete", key=f"quick_history_delete_{i}", use_container_width=True):
+                            del session["quick_ideas_history"][len(session["quick_ideas_history"]) - i - 1]
+                            st.success("Idea deleted!")
+                            st.rerun()
+            else:
+                st.info("No quick ideas have been saved yet.")
 
     with writer_tab:
         st.subheader("Your Final Workspace ✨")
@@ -713,21 +945,23 @@ else:
                         display_index = len(session['draft_history']) - i
                         st.markdown(f"**Draft {display_index}** saved at `{draft_entry['timestamp']}`")
                         
-                        hist_col1, hist_col2 = st.columns([0.8, 0.2])
+                        hist_col1, hist_col2, hist_col3 = st.columns([0.7, 0.15, 0.15])
                         with hist_col1:
                             with st.expander("View Content"):
                                 st.markdown(draft_entry['content'])
                         with hist_col2:
-                            if st.button("↩️ Restore", key=f"restore_{display_index}"):
+                            if st.button("↩️ Restore", key=f"restore_{i}", use_container_width=True):
                                 session["draft"] = draft_entry["content"]
                                 st.session_state.qa_critique = ""
                                 st.success("Draft restored!")
+                                st.rerun()
+                        with hist_col3:
+                            if st.button("🗑️ Delete", key=f"delete_draft_{i}", use_container_width=True):
+                                del session["draft_history"][len(session["draft_history"]) - i - 1]
+                                st.success("Draft deleted!")
                                 st.rerun()
                 else:
                     st.info("No drafts have been saved yet. Click the 'Save Draft' button to create a history.")
         else:
             st.info("💡 Select an idea from the 'Post Ideas' tab to start writing.")
-
-
-
-
+           

@@ -4,22 +4,34 @@
 
 Ascent AI is a sophisticated, SaaS-style Streamlit application that acts as your personal AI co-pilot for career branding. It turns your professional experience and career aspirations into content that gets noticed, helping you share posts in your authentic voice, join the right discussions, and grow your influence as a thought leader on platforms like LinkedIn.
 
-Upload your resume and writing samples so Ascent AI can learn your style — it doesn’t just write posts; it writes in your voice.
+Upload your resume and writing samples so Ascent AI can learn your style. It doesn’t just write posts; it writes in your voice.
 
 ---
 ## ✨ Core Features
 
-* **Guided Onboarding:** Enter your target role, audience, platform preferences, and professional context to start building your brand.
-* **Interactive Refinement:** A human-in-the-loop (HITL) feedback system allows you to critique and refine the AI-generated strategy until it's perfect.
-* **Authentic Voice Posts:** Upload writing samples so AI can create content that reflects your unique tone and style.
+* **Flexible Workflows:** Choose between two powerful modes from the sidebar:
+    * **Strategic Branding:** A guided, multi-step process that builds a detailed, multi-week content strategy from your professional background and goals.
+    * **Quick Ideas:** A quick-start option to instantly generate single post ideas or a 3-part series on a specific topic without a full strategy.
+
+* **Human-in-the-Loop (HITL) Feedback:** An interactive system allows you to critique and refine AI-generated strategies and post drafts until they're perfect.
+
+* **Authentic Voice Generation:** Upload writing samples so the AI can learn and replicate your unique tone and style, ensuring content truly reflects you.
+
 * **Multi-Agent AI Crew:** Powered by CrewAI, the app uses a team of specialized AI agents for a robust workflow:
-    * **Personal Branding Strategist (Gemini):** Creates a tailored, multi-week content strategy based on your background and career goals.
-    * **Content Ideation Agent (Groq):** Brainstorms creative and engaging post ideas at high speed based on your approved strategy.
-    * **Title Agent (Groq):** Automatically generates concise titles for your sessions.
-* **Heterogeneous LLM's:** Strategically uses different Large Language Models for different tasks—**Google's Gemini** for deep strategic analysis and **Groq's Llama** for high-speed creative generation.
-* **Polished SaaS UI:** A clean, two-tab interface separates your workspace (`Brand Strategy`) from your content library (`Post Ideas`).
-* **Session Management:** A professional sidebar allows you to create new sessions, view, rename, and delete your recent session history.
-* **Export Functionality:** Download your generated strategies and post ideas as clean Markdown files for easy sharing.
+    * **Professional Resume Summarizer (Groq):** Concisely summarizes your professional background and career goals.
+    * **Personal Branding Strategist (Gemini):** Creates a tailored, multi-week content strategy.
+    * **Content Ideation Agent (Groq):** Brainstorms creative and engaging post ideas at high speed.
+    * **LinkedIn Ghostwriter (Gemini):** Drafts polished, full-length posts in your authentic voice.
+    * **Quality Assurance Agent (Gemini):** Reviews drafted posts for clarity, tone, and strategic impact.
+    * **Title Generator (Groq):** Automatically creates concise titles for your sessions.
+
+* **Heterogeneous LLMs:** Strategically uses different Large Language Models for different tasks—**Google's Gemini** for deep strategic analysis and polished writing, and **Groq's Llama** for high-speed creative generation and concise tasks.
+
+* **Polished SaaS UI:** A clean, four-tab interface separates your workspace (`Brand Strategy`, `Post Ideas`, `Quick Ideas`, and `Final Post`) for a focused workflow.
+
+* **Comprehensive Session Management:** A professional sidebar allows you to create, load, rename, and delete past sessions, providing a history of your branding efforts.
+
+* **Export Functionality:** Easily download your generated strategies and finalized posts as clean text files.
 
 ---
 ## 💻 Built With
@@ -27,7 +39,7 @@ Upload your resume and writing samples so Ascent AI can learn your style — it 
 * **Frontend:** [Streamlit](https://streamlit.io/)
 * **AI Framework:** [CrewAI](https://www.crewai.com/)
 * **LLMs:** [Google Gemini](https://ai.google.dev/) & [Groq Llama](https://groq.com/)
-* **Core Libraries:** streamlit, crewai, langchain-groq, langchain-google-genai, pypdf, streamlit-local-storage
+* **Core Libraries:** `streamlit`, `crewai`, `langchain-groq`, `langchain-google-genai`, `pypdf`, `streamlit-local-storage`
 
 ---
 ## 🚀 Getting Started
@@ -78,79 +90,30 @@ With your virtual environment active, run the following command in your terminal
 
 ```sh
 streamlit run app.py
-
-## Post Ideas Tab Logic and UI
-### Your Content Ideas
-These ideas are based on your personal branding strategy. Use the options below to refine and select your favorites.
-
-**1. Future of PM in the Age of Generative AI**
-* [ ] "As Generative AI reshapes our world, how will PMs adapt to leverage its power for transformative innovation?"
-    [➕3 More like this] [✍️ Write]
-* [ ] "Imagine PMs as AI strategists - what would be the most critical skillsets for success?"
-    [➕3 More like this] [✍️ Write]
-* [ ] "Will AI-generated insights revolutionize product decision-making - share your thoughts!"
-    [➕3 More like this] [✍️ Write]
-
-**Refine Ideas for This Theme**
-<br>
-[Text input area: Provide feedback to refine existing ideas or generate new ones for the selected topics. Feedback will modify the current ideas; generating new ideas will replace all unselected ones with a fresh batch.]
-[Refine Selected Topics] [🔄 Generate New Ideas for Unselected Topics]
-
-**2. Quantifying Innovation's Impact at Genentech**
-* [ ] "From zero to hero: how a simple data product transformed productivity at Genentech."
-    [➕3 More like this] [✍️ Write]
-* [ ] "26 FTEs freed to focus on strategy - what innovative solutions have you unlocked?"
-    [➕3 More like this] [✍️ Write]
-* [ ] "Unlocking the numbers: how data-driven innovation improved process efficiency."
-    [➕3 More like this] [✍️ Write]
-
-**Refine Ideas for This Theme**
-<br>
-[Text input area: Provide feedback to refine existing ideas or generate new ones for the selected topics. Feedback will modify the current ideas; generating new ideas will replace all unselected ones with a fresh batch.]
-[Refine Selected Topics] [🔄 Generate New Ideas for Unselected Topics]
-
-**Overall Strategy Refinement**
-Actions that apply across all themes.
-<br>
-[Text input area: Provide feedback to refine all topics or generate new ones only for the unselected topics. Feedback will modify the selected ideas; generating new ideas will replace all unselected ones with a fresh batch.]
-[Refine All Ideas with Feedback] [🔄 Generate New Ideas for All Unselected Topics]
-
-### UI
-<br>
-![Post Ideas Tab UI](https://github.com/user-attachments/assets/2ec3cca2-261a-430f-8855-6b457dcdb4bf)
-
-
-# Final Post Tab Logic and UI
-
-The **Final Post** tab brings your drafted post to life, offering refinement, quality checks, and essential actions.
+```
 
 ---
+### Navigating the App
 
-## Post Preview & Actions
-- **Social Media Post Preview**  
-  Displays the drafted content within a stylized container, mimicking a real LinkedIn post for better visualization.
+The application is structured into four main tabs, each designed for a specific part of the content creation workflow:
 
-- **Final Actions** (located below the preview):
-  - **Copy to Clipboard** → Easily copy the post’s text.  
-  - **Save Draft** → Store the current version for later.  
-  - **Download as Text** → Save a local copy of the post.  
+* **📝 Brand Strategy:**  
+  A step-by-step process to define your professional brand.  
+  You’ll answer questions about your background, career goals, and desired positioning.  
+  The AI then generates a detailed, multi-week content strategy tailored to your needs — the starting point for building a long-term plan.
 
----
+* **💡 Post Ideas:**  
+  Your primary content creation hub. Once a strategy is approved, it populates with post ideas organized by theme.  
+  You can refine existing ideas, generate more ideas for specific themes, or use the **Refine Selected Ideas** buttons to apply feedback across multiple themes.
 
-## Quality Check & Refinement
-A collapsible **Quality Check & Refinement** expander houses the core feedback loop:
+* **✨ Quick Ideas:**  
+  An on-demand, no-strategy-required workflow. You can generate single-post ideas or a 3-part series on any topic you choose.  
+  This tab also allows you to save your favorite ideas to a history for later use.
 
-- **Quality Assurance Agent**  
-  Automatically provides constructive, bulleted feedback each time a new draft is generated.
+* **✍️ Final Post:**  
+  Your final workspace. Select any idea from the other tabs to have the AI write a full, polished draft. Here, you can:
+  - Review a **Post Preview** styled like a real social media post.  
+  - Get automated feedback from the **Quality Assurance Agent**.  
+  - Provide your own feedback and refine the draft using the **Refine Draft** button.  
+  - Save or download your final version.  
 
-- **User Feedback Area**  
-  A text area allows you to provide your own feedback.  
-  This input can be used to refine the draft by rerunning the **Ghostwriter agent**.
-
----
-
-## Saved Drafts History
-A collapsible **Saved Drafts History** expander maintains a record of all saved versions of your post:
-
-- Each saved draft can be **viewed and restored with a single click**.  
-- Enables quick reversion to earlier versions if needed.
